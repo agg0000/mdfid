@@ -26,7 +26,7 @@ def pvp(a):
     return vup
     
 
-k = 6
+k = 8
 x = np.arange(-5, 5, 0.001)
 V = k / 2 * x * x
 
