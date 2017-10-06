@@ -21,7 +21,7 @@ st = int(rdate[5])
 
 class Pot():
     
-    def __inti__(self, bg):
+    def __init__(self, bg):
         self.bg = bg
         
     def plf(self, mx, ny):
