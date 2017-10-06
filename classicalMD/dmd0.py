@@ -91,14 +91,17 @@ rxa = np.array(x1a)
 rya = np.array(y1a)
 
 tra = plt.figure('tra')
-plt.plot(rxa, rya)
+plt.plot(rxa, rya, label = 'trajectory')
 
 a = np.arange(-1.5, 1.5, 0.001)
 b = np.arange(-1.5, 1.5, 0.001)
 X, Y = np.meshgrid(a, b)
 
 C = plt.contour(X, Y, plfu(X, Y), 6, colors = 'black')
-plt.clabel(C, linewidth = 0.1)
+plt.clabel(C)
+plt.title('trajectory on the PES')
+
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 tra.show()  
 
 #作出势能、动能与总能随时间（步长）变化图
@@ -112,8 +115,12 @@ En = Tn + Un
 ene = plt.figure('ene')
 sup = np.arange(0, dt * stp, dt)
 
-plt.plot(sup, Tn, 'red')
-plt.plot(sup, Un, 'black')
-plt.plot(sup, En, 'green')
+plt.plot(sup, Tn, 'r-.', label = 'kinetic'   )
+plt.plot(sup, Un, 'b--', label = 'potential' )
+plt.plot(sup, En, 'g',   label = 'total'     )
 
+plt.title('the change of the energy')
+plt.xlabel('time')
+plt.ylabel('energy')
+plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 ene.show()
