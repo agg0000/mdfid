@@ -1,94 +1,92 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct  6 11:36:12 2017
+Created on Fri Oct  6 20:33:16 2017
 
 @author: zongzi
 """
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 
 rdate = open('inpt').readlines()
 
-rx = np.array(rdate[0].split(','), dtype='float16')
+rq = np.array(rdate[0].split(','), dtype='float16')
 rp = np.array(rdate[1].split(','), dtype='float16')
+ma = float(rdate[2])
+bh = float(rdate[3])
+dt = float(rdate[4])
 
-ms = float(rdate[2])
-bi = float(rdate[3])
-de = float(rdate[4])
+stp = int(rdate[5])
 
-st = int(rdate[5])
+def plf(mx, ny):
+    return bh * np.exp(-mx ** 2 - ny ** 2)
 
-class Pot():
+def plp(mx, ny):
+    return -2 * mx * bh * np.exp(-mx ** 2 - ny ** 2)
+
+x1 = rq[0]
+y1 = rq[1]
+px = rp[0]
+py = rp[1]
+
+x1a = []
+y1a = []
+pxa = []
+pya = []
+
+for i in range(stp):
     
-    def __init__(self, bg):
-        self.bg = bg
-        
-    def plf(self, mx, ny):
-        return self.bg * math.exp(-mx ** 2 - ny ** 2)
+    x0 = x1
+    y0 = y1
+    
+    px0 = px
+    py0 = py
+    
+    x1 = x0 + px0 * dt / ma - plp(x0, y0)  * dt ** 2 / (ma * 2)
+    y1 = y0 + py0 * dt / ma - plp(x0, y0)  * dt ** 2 / (ma * 2)
+    
+    U1 = plp(x0, y0)
+    U2 = plp(x1, y0)
+    U3 = plp(x0, y1)
+    
+    px = px0 - dt * (U1 + U2) / 2
+    py = py0 - dt * (U1 + U3) / 2
+    
+    x1a.append(x1)
+    y1a.append(y1)
+    pxa.append(px)
+    pya.append(py)
+    
+rxa = np.array(x1a)
+rya = np.array(y1a)
 
-    def plp(self, mx, ny):
-        return -2 * mx * self.bg * math.exp(-mx ** 2 - ny ** 2)         
-        
-class Loop():
-
-    def __init__(self, q1, q2, p1, ma, bh, dt, sp):
-        self.q1 = q1
-        self.p1 = p1
-        self.q2 = q2
-        self.sp = sp
-        self.dt = dt
-        self.ma = ma
-        self.bh = bh
-        
-    def vv(self):
-        
-        bg  = self.bh
-        puf = Pot(bg)
-        
-        x1 = self.q1
-        p1 = self.p1
-        y0 = self.q2
-        
-        xa = [x1]
-        pa = [p1]
-        
-        for i in range(self.sp):
-            x0 = x1
-            p0 = p1
-            
-            x1 = x0 + p0 * self.dt / self.ma - puf.plp(x0, y0)  * self.dt ** 2 / (self.ma * 2)
-            
-            U1 = puf.plp(x0, y0)
-            U2 = puf.plp(x1, y0)
-
-            p1 = p0 - self.dt * (U1 + U2) / 2
-            
-            xa.append(x1)
-            pa.append(p1)
-        
-        return xa, pa
-
-lx = Loop(q1 = rx[0], q2 = rx[1], p1 = rp[0], ma = ms, bh = bi, dt = de, sp = st)
-rxa, xpa = lx.vv()
-
-ly = Loop(q1 = rx[1], q2 = rx[0], p1 = rp[1], ma = ms, bh = bi, dt = de, sp = st)
-rya, ypa = ly.vv()
-
+tra = plt.figure('tra')
 plt.plot(rxa, rya)
-'''
-a = np.arange(-3, 3, 0.001)
-b = np.arange(-3, 3, 0.001)
 
+a = np.arange(-1.5, 1.5, 0.001)
+b = np.arange(-1.5, 1.5, 0.001)
 X, Y = np.meshgrid(a, b)
 
-#plt.contourf(X, Y, plf(X, Y), np.linspace(0.025, 3, 5), alpha = 0.1, cmap = plt.cm.hot)
-
-C = plt.contour(X, Y, plf(X, Y), np.linspace(0.005, 2.95, 6), 
-                colors = 'b')
-
+C = plt.contour(X, Y, plf(X, Y), 6, colors = 'black')
 plt.clabel(C, linewidth = 0.1)
+tra.show()  
 
+xpan = np.array(pxa)
+ypan = np.array(pya)
 
-plt.show()
-'''
+Tn = (xpan ** 2 + ypan ** 2) / (2 * ma)
+Un = plf(rxa, rya)
+En = Tn + Un
+
+ene = plt.figure('ene')
+sup = np.arange(0, dt * stp, dt)
+
+plt.subplot(221)
+plt.plot(sup, Tn, 'red')
+
+plt.subplot(222)
+plt.plot(sup, Un, 'black')
+
+plt.subplot(223)
+plt.plot(sup, En, 'green')
+
+ene.show()
