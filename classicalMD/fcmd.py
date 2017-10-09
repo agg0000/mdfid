@@ -29,12 +29,7 @@ def Fup(a):
     tmp = math.exp(-(a - 5) ** 2)
     Eup = -2 * ssd * (a - 5) * tmp
     return Eup
-'''
-def Fupp(a):
-    tmp = math.exp(-(a - 5) ** 2)
-    Epp = 4 * ssd * tmp * (a ** 2 - 10 * a + 12)
-    return Epp
-'''
+
 #初始化
 x = xin
 p = pin
@@ -60,7 +55,7 @@ for i in range(stp):
     U1 = Fup(x0)
     U2 = Fup(x)
     
-    p  = p0 - dt * (U1 + U2) / (2 * mas)
+    p  = p0 - dt * (U1 + U2) / 2 
     
     Ua.append(U)
     Ta.append(T)
