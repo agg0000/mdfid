@@ -25,6 +25,13 @@ class pot():
         b = -pot.v11l(a)
         return b
 
+class sh():
+    
+    def a12():
+        
+    def a21():        
+    
+
 x1 = np.arange(-10, 0, 0.01)
 x2 = np.arange(0, 10, 0.01)
 
