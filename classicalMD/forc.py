@@ -11,6 +11,8 @@ from sys import argv
 ff, nm, inpt = argv
 name = inpt.split('.')[0]
 
+mas = {}
+
 def refor(efg, x1, nnn):
 	rfg  = "%s%s" %(name, str(nnn))
 	fgjf = open("%s.gjf" %efg).readlines()
@@ -51,11 +53,6 @@ def gauss(rfg):
 		time.sleep(3)
 	
 	return "%s.log" %rfg
-
-def xtox(en, pos, far, mas):
-	p0 = momen(en)
-	x1 = deltx(pos, p0, far, mas)
-	return x1
 
 def deltx(x0, p0, f0, m):
 	x1 = x0 + p0 * dt / m + f0 * dt ** 2 / (2 * m )
@@ -179,7 +176,7 @@ ele1, far1, pos1, sig1 = poforc(nm, ele0, far0, pos0, sig0)
 nnn = 1
 while 1:
 	for i in range(nat):
-		x1 = xtox(mom1[i], pos1[i], far[i], mas[i])
+		x1 = deltx(mom1[i], pos1[i], far[i], mas[i])
 		pos1[i] = x1
 
 	gjf0 = refor(gjf0, pos1, nnn)
@@ -189,7 +186,7 @@ while 1:
 	far1, pos1 = poforc(newlog, ele1, far1, pos1, sig1)
 
 	for i in range(nat):
-		p1 = ptop
+		p1 = deltp(mom1[i], far2[i], far1[i])
 		mom1[i] = p1
 
 	deltf = far1 - far2
