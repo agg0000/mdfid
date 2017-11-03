@@ -5,11 +5,12 @@ import re
 import copy
 import math
 import time
+import random
 import numpy as np
 from sys import argv
 
 ff, nm, inpt = argv
-name = inpt.split('.')[0]
+name = nm.split('.')[0]
 
 mas = {'1' : 1823.0 , '3' : 12761.0, '4' : 16407.0, '5' : 19688.4, '53':231521.0,
        '6' : 21876.0, '7' : 25522.0, '8' : 29168.0, '9' : 34637.0, '10': 36460.0,
@@ -18,44 +19,50 @@ mas = {'1' : 1823.0 , '3' : 12761.0, '4' : 16407.0, '5' : 19688.4, '53':231521.0
 
 def refor(efg, x1, nnn):
 	rfg  = "%s%s" %(name, str(nnn))
-	fgjf = open("%s.gjf" %efg).readlines()
+	sefg = efg.split('.')[0]
+	fgjf = open("%s.gjf" %sefg).readlines()
 	agjf = open("%s.gjf" %rfg, 'w')
 
 	elea = []
 	for i in range(nat):
-		elem = fgjf[nat + 5]
-		elet = re.split(' |\n', elem)
+		elem = fgjf[6: nat + 6]
+		
+		for i in range(nat):
+			elet = re.split(' |\n', elem[i])
 
-		while '' in elet:
-			elet.remove('')
+			while '' in elet:
+				elet.remove('')
 
-		elea.append(elet[0])
+			elea.append(elet[0])
 
-	for i in range(5):
+	for i in range(6):
 		agjf.write(fgjf[i])
 
-	for i in range(5, 5 + nat):
+	for i in range(6, 6 + nat):
 		agjf.write(' ')
-		agjf.write(elea[i - 5])
+		agjf.write(elea[i - 6])
 		agjf.write('                  ')
 
 		for ii in range(3):
 			agjf.write('    ')
-			agjf.write(str(x1[i -5][ii]))
-			
-	for i in range(5 + nat, len(fgjf)):
+			agjf.write(str(x1[i -6][ii]))
+		
+		agjf.write('\n')
+
+	for i in range(6 + nat, len(fgjf)):
 		agjf.write(fgjf[i])
 
 	agjf.close()
-	return "%s.gjf" %agjf
+	return "%s.gjf" %rfg
 
 def gauss(rfg):
-	os.system("subg09 %s.gjf" %rfg)
+	erfg = rfg.split('.')[0]
+	os.system("subg09 %s.gjf" %erfg)
 
-	while not os.path.exists("%s.log" %rfg):
+	while not os.path.exists("%s.log" %erfg):
 		time.sleep(3)
 	
-	return "%s.log" %rfg
+	return "%s.log" %erfg
 
 def deltx(x0, p0, f0, m):
 	x1 = x0 + p0 * dt / m + f0 * dt ** 2 / (2 * m )
@@ -118,7 +125,7 @@ def poforc(log, ele, far, pos, sig):
 			ele.append(anlog[0])
 		
 		if not len(deo):
-			sig.append(anlog[0])
+			sig.append(anlog[1])
 
 	pos = np.array(pos, dtype = float)
 	far = np.array(far, dtype = float)
@@ -148,7 +155,9 @@ while '' in eum:
 num = len(eum)
 nem = []
 for i in range(num):
-	nem.append(eum[i].split(','))
+	neme = eum[i].split(',')
+	neme[0] = str(int(neme[0]) - 1)
+	nem.append(neme)
 
 pem = []
 for i in range(len(nem)):
@@ -171,7 +180,8 @@ pos0 = []
 sig0 = []
 mom1 = []
 for i in range(nat):
-	moma = momen(dum[i])
+	a = str(i)
+	moma = momen(dum[a])
 	mom1.append(moma)
 
 ele1, far1, pos1, sig1 = poforc(nm, ele0, far0, pos0, sig0)
@@ -179,7 +189,7 @@ ele1, far1, pos1, sig1 = poforc(nm, ele0, far0, pos0, sig0)
 nnn = 1
 while 1:
 	for i in range(nat):
-		x1 = deltx(mom1[i], pos1[i], far[i], mas[sig[i]])
+		x1 = deltx(mom1[i], pos1[i], far1[i], mas[sig1[i]])
 		pos1[i] = x1
 
 	gjf0 = refor(gjf0, pos1, nnn)
@@ -197,3 +207,4 @@ while 1:
 		break
 	
 	nnn += 1
+	print('cycle %d' %nnn)
