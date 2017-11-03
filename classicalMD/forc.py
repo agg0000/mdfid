@@ -11,7 +11,10 @@ from sys import argv
 ff, nm, inpt = argv
 name = inpt.split('.')[0]
 
-mas = {}
+mas = {'1' : 1823.0 , '3' : 12761.0, '4' : 16407.0, '5' : 19688.4, '53':231521.0,
+       '6' : 21876.0, '7' : 25522.0, '8' : 29168.0, '9' : 34637.0, '10': 36460.0,
+	   '11': 41929.0, '12': 44298.9, '13': 49221.0, '14': 51044.0, '15': 56513.0,
+	   '16': 58336.0, '17': 64716.5, '20': 72920.0, '19': 71097.0, '35':145840.0,}
 
 def refor(efg, x1, nnn):
 	rfg  = "%s%s" %(name, str(nnn))
@@ -176,7 +179,7 @@ ele1, far1, pos1, sig1 = poforc(nm, ele0, far0, pos0, sig0)
 nnn = 1
 while 1:
 	for i in range(nat):
-		x1 = deltx(mom1[i], pos1[i], far[i], mas[i])
+		x1 = deltx(mom1[i], pos1[i], far[i], mas[sig[i]])
 		pos1[i] = x1
 
 	gjf0 = refor(gjf0, pos1, nnn)
