@@ -56,10 +56,20 @@ def refor(efg, x1, nnn):
 def gauss(rfg):
 	erfg = rfg.split('.')[0]
 	os.system("subg09 %s.gjf" %erfg)
-
-	while not os.path.exists("%s.log" %erfg):
-		time.sleep(3)
 	
+	while 1:
+		time.sleep(3)
+		os.system("qstat -a > che")
+		chc = open("che").readlines()[-1]
+		os.system("rm che")
+		chb = chc.split(" ")
+
+		while '' in chb:
+			chb.remove('')
+
+		if chb[-3] == "C":
+			break
+
 	return "%s.log" %erfg
 
 def deltx(x0, p0, f0, m):
@@ -188,10 +198,5 @@ while 1:
 	for i in range(nat):
 		p1 = deltp(mom1[i], far2[i], far1[i])
 		mom1[i] = p1
-
-	deltf = far1 - far2
-	if abs(deltf.sum()) < 0.001:
-		break
 	
 	nnn += 1
-	print('cycle %d' %nnn)
