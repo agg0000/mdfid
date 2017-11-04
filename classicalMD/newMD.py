@@ -9,7 +9,6 @@ import numpy as np
 from sys import argv
 
 ff, nm, inpt = argv
-name = nm.split('.')[0]
 
 mas = {'1' : 1823.0 , '3' : 12761.0, '4' : 16407.0, '5' : 19688.4, '53':231521.0,
        '6' : 21876.0, '7' : 25522.0, '8' : 29168.0, '9' : 34637.0, '10': 36460.0,
@@ -17,7 +16,7 @@ mas = {'1' : 1823.0 , '3' : 12761.0, '4' : 16407.0, '5' : 19688.4, '53':231521.0
        '16': 58336.0, '17': 64716.5, '20': 72920.0, '19': 71097.0, '35':145840.0,}
 
 def refor(efg, x1, nnn):
-	rfg  = "%s%s" %(name, str(nnn))
+	rfg  = "%s%s" %(nm, str(nnn))
 	sefg = efg.split('.')[0]
 	fgjf = open("%s.gjf" %sefg).readlines()
 	agjf = open("%s.gjf" %rfg, 'w')
@@ -71,57 +70,57 @@ def deltp(p0, f0, f1):
 	p1 = p0 + dt * (f0 + f1) / 2
 	return p1
 
-def poforc(log, ele, far, pos, sig):
+def apot(gjf, pos):
+	fgjf = open(gjf).readlines()
+
+	ngjf = fgjf[6: 6 + nat]
+	for i in range(nat):
+		angjf = re.split(' |\n', ngjf[i])
+
+		while '' in angjf:
+			angjf.remove('')
+
+		pos.append(angjf[1:])
+
+	pos = np.array(pos, dtype = float)
+	return pos
+
+def aforc(log, far, sig):
 	flog = open(log).readlines()
 
 	row = 0
-	raw = 0
 	for i in range(len(flog)):
 		if 'Forces ' in flog[i]:
 			row = i
-
-		if 'Standard o' in flog[i]:
-			raw = i
 
 	if row:
 		nlog = flog[row + 3: row + 3 + nat]
 	else:
 		print("no 'Forces ' in the list")
 		exit()
-	
-	if raw:
-		plog = flog[raw + 5: raw + 5 + nat]
-	else:
-		print("no positon")
-		exit()
 
 	deo = copy.deepcopy(sig)
-	det = copy.deepcopy(ele)
+	fao = copy.deepcopy(far)
 	for i in range(nat):
 		anlog = re.split(' |\n', nlog[i])
-		aplog = re.split(' |\n', plog[i])
 		
 		while '' in anlog:
 			anlog.remove('')
-		
-		while '' in aplog:
-			aplog.remove('')
 
-		far.append(anlog[2:])
-		pos.append(aplog[3:])
-		if not len(det):
-			ele.append(anlog[0])
-		
+		if len(fao):
+			far[i] = anlog[2:]
+		else:
+			far.append(anlog[2:])
+
 		if not len(deo):
-			sig.append(anlog[1])
+			sig.append(str(anlog[1]))
 
-	pos = np.array(pos, dtype = float)
 	far = np.array(far, dtype = float)
 
-	if not len(det) or not len(deo):
-		return ele, far, pos, sig
+	if not len(deo):
+		return far, sig
 	else:
-		return far, pos
+		return far
 
 '''
 输入文件inp为所需参数
@@ -159,29 +158,32 @@ dum = {}
 for i in range(nat):
 	dum[str(nem[i][0])] = [int(nem[i][1]), int(nem[i][2]), int(nem[i][3])]
 
-gjf0 = "%s.gjf" %name
-ele0 = []
-far0 = []
+gjf0 = "%s.gjf" %nm
 pos0 = []
+far0 = []
 sig0 = []
 mom1 = []
+
+log0 = gauss(gjf0)
 for i in range(nat):
 	a = str(i)
 	mom1.append(dum[a])
 
-ele1, far1, pos1, sig1 = poforc(nm, ele0, far0, pos0, sig0)
-print(pos1, '\n', far1)
+mom1 = np.array(mom1, dtype = float)
+pos1 = apot(gjf0, pos0)
+far1, sig1 = aforc(log0, far0, sig0)
+
 nnn = 1
 while 1:
 	for i in range(nat):
-		x1 = deltx(pos1[i], mom1[i], far1[i], mas[sig1[i]])
+		x1 = deltx(pos1[i], mom1[i], far1[i], float(mas[sig1[i]]))
 		pos1[i] = x1
 
 	gjf0 = refor(gjf0, pos1, nnn)
 	newlog = gauss(gjf0)
 	
 	far2 = copy.deepcopy(far1)
-	far1, pos1 = poforc(newlog, ele1, far1, pos1, sig1)
+	far1 = aforc(newlog, far1, sig1)
 
 	for i in range(nat):
 		p1 = deltp(mom1[i], far2[i], far1[i])
