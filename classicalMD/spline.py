@@ -168,14 +168,16 @@ cof = coe(nux, nuy, som)
 
 lnx = int(len(nux) - 1)
 nex = np.linspace(nux[0], nux[-1], lnx * 10 + 1)
-ney = np.zeros((len(nex)))
+ney = np.zeros((len(nex) - 1))
+print(nex)
 
-for i in range(len(nex)):
+for i in range(len(nex)-1):
 	cou = 0
-	for ii in range(1, lnx):
+	for ii in range(len(nux)):
 		if nex[i] < nux[ii]:
 			cou = ii - 1
-
+			break
+	print(cou)
 	ney[i] = cof[0][cou] + cof[1][cou] * (nex[i] - nux[cou]) + cof[2][cou] * (nex[i] - nux[cou]) ** 2 + cof[3][cou] * (nex[i] - nux[cou]) ** 3
 
 plt.plot(nex, ney)
