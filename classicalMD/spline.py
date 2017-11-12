@@ -8,11 +8,13 @@ Created on Sun Nov 12 11:53:59 2017
 晚上，完成矩阵部分
 剩下系数部分未解决
 深夜，初步完成
+bug太多
 @author: zongzi
 """
 
-import copy
+import re
 import numpy as np
+import matplotlib.pyplot as plt
 from sys import argv
 
 '''
@@ -105,7 +107,7 @@ def spl(x, y, k):
 	
 	z = np.zeros((len(x)))
 	for i in range(1, len(x) - 1):
-		z = (y[i + 1] - y[i]) / dx[i] - (y[i]- y[i - 1]) / dx[i - 1]
+		z[i] = (y[i + 1] - y[i]) / dx[i] - (y[i]- y[i - 1]) / dx[i - 1]
 		z = 6 * z
 		
 	h = list(h)
@@ -128,12 +130,12 @@ def coe(x, y, m):
 
 	lmn = len(m) - 1
 	cof = np.zeros((4, lmn))
-	cof[0] = y
+	cof[0] = y[:-1]
 
 	for i in range(lmn):
 		cof[1][i] = (y[i + 1] -y[i]) / dx[i] - dx[i] * m[i] / 2 - dx[i] * (m[i + 1] - m[i]) / 2
 
-	cof[2] = m / 2
+	cof[2] = m[:-1] / 2
 
 	m1 = m[1:]
 	m2 = m[:-1]
@@ -147,30 +149,30 @@ def coe(x, y, m):
 fn, nm = argv
 
 rea = open(nm).readlines()
-nux = np.zeros((len(rea)))
-nuy = np.zeros((len(rea)))
+nux = np.zeros(len(rea))
+nuy = np.zeros(len(rea))
 
 for i in range(len(rea)):
 	rec = re.split('\t|\n', rea[i])
 	
-	while '' in rea:
-		rea.remove('')
+	while '' in rec:
+		rec.remove('')
 		
-	nux[i] = rea[0]
-	nuy[i] = rea[-1]
+	nux[i] = float(rec[0])
+	nuy[i] = float(rec[-1])
 	
 nuh = spl(nux, nuy, 'c')
 uth = ut(nuh, 1)
 som = sol(uth)
 cof = coe(nux, nuy, som)
 
-lnx = range(nux) - 1
+lnx = int(len(nux) - 1)
 nex = np.linspace(nux[0], nux[-1], lnx * 10 + 1)
 ney = np.zeros((len(nex)))
 
 for i in range(len(nex)):
 	cou = 0
-	for ii in range(1, nux):
+	for ii in range(1, lnx):
 		if nex[i] < nux[ii]:
 			cou = ii - 1
 
