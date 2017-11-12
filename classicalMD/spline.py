@@ -7,6 +7,7 @@ Created on Sun Nov 12 11:53:59 2017
 下午，完成通过下三角求解方程组
 晚上，完成矩阵部分
 剩下系数部分未解决
+深夜，初步完成
 @author: zongzi
 """
 
@@ -70,7 +71,7 @@ def sol(x):
 def spl(x, y, k):
 	x1 = x[1:]
 	x2 = x[:-1]
-	dx = x2 - x1
+	dx = x1 - x2
 	h = np.zeros((len(x),len(x)))
 	
 	if k == 'a':
@@ -81,10 +82,10 @@ def spl(x, y, k):
 	
 	elif k == 'b':
 	
-		h[0][0]   = 2 * dx[0]
+		h[0][0]   = dx[0] * 2
 		h[0][1]   = dx[0]
 		
-		h[-1][-1] = 2 * dx[-1]
+		h[-1][-1] = dx[-1] * 2
 		h[-1][-2] = dx[-1]
 
 	elif k == 'c':
@@ -112,10 +113,36 @@ def spl(x, y, k):
 	h = np.array(h)
 	
 	return h
-	
-def coe(x, y):
-	
-	
+
+'''
+将系数放入cof多维数组中
+cof[0]为对应的a
+cof[1]为对应的b
+cof[2]为对应的c
+cof[3]为对应的d
+'''
+def coe(x, y, m):
+	x1  = x[1:]
+	x2  = x[:-1]
+	dx  = x2 - x1
+
+	lmn = len(m) - 1
+	cof = np.zeros((4, lmn))
+	cof[0] = y
+
+	for i in range(lmn):
+		cof[1][i] = (y[i + 1] -y[i]) / dx[i] - dx[i] * m[i] / 2 - dx[i] * (m[i + 1] - m[i]) / 2
+
+	cof[2] = m / 2
+
+	m1 = m[1:]
+	m2 = m[:-1]
+
+	cof[3] = m1 - m2
+
+	return cof
+
+#============================================================================================================
 
 fn, nm = argv
 
@@ -134,4 +161,20 @@ for i in range(len(rea)):
 	
 nuh = spl(nux, nuy, 'c')
 uth = ut(nuh, 1)
-soh = sol(uth)
+som = sol(uth)
+cof = coe(nux, nuy, som)
+
+lnx = range(nux) - 1
+nex = np.linspace(nux[0], nux[-1], lnx * 10 + 1)
+ney = np.zeros((len(nex)))
+
+for i in range(len(nex)):
+	cou = 0
+	for ii in range(1, nux):
+		if nex[i] < nux[ii]:
+			cou = ii - 1
+
+	ney[i] = cof[0][cou] + cof[1][cou] * (nex[i] - nux[cou]) + cof[2][cou] * (nex[i] - nux[cou]) ** 2 + cof[3][cou] * (nex[i] - nux[cou]) ** 3
+
+plt.plot(nex, ney)
+plt.show()
