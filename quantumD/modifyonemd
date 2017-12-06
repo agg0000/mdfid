@@ -1,0 +1,497 @@
+#!/usr/bin/env python
+'''
+The first molecular dynamics program of myself,
+also this is like a script,but who case,
+this is just for myself to learn the molecular dynamics.
+'''
+
+import os
+import re
+import sys
+import copy
+import datetime
+import numpy as np
+
+start = datetime.datetime.now() # write down the begin time of the program
+pythonfile, inputfile = sys.argv # inputfile for argv which creat the parameter
+
+# the atiomic units mass of atom
+mas = {'H' : 1823.0 , 'Li': 12761.0, 'Be': 16407.0, 'B' : 19688.4, 'I' :231521.0,
+       'C' : 21876.0, 'N' : 25522.0, 'O' : 29168.0, 'F' : 34637.0, 'Ne': 36460.0,
+       'Na': 41929.0, 'Mg': 44298.9, 'Al': 49221.0, 'Si': 51044.0, 'P' : 56513.0,
+       'S' : 58336.0, 'Cl': 64716.5, 'Ca': 72920.0, 'K' : 71097.0, 'Br':145840.0,}
+
+def regjf(oldgjf, newpos, intcycle, numele, gjfname):
+	'''
+	use the new position to create a new gjf file
+	'''
+	strcycle  = str(intcycle) # mark the number of gjf file
+	newgjf  = "%s%s.gjf" %(gjfname, strcycle)
+	oldfile = open(oldgjf).readlines()
+	newfile = open(newgjf, 'a+')
+	filelen = len(oldfile)
+
+	linenu = 4 # ensure the positine line number.
+	chkline = filelen + 1 #ensure chkline exit 
+	for i in range(filelen):
+		if oldfile[i][0] in ['%', '#']:
+			linenu += 1
+		
+		if "%chk=" in oldfile[i]:
+			chkline = i
+
+	elearray = [] # elearray means element array
+	elementa = oldfile[linenu: numele + linenu] # elementa means all elements of rows
+	for i in range(numele):# to get the symbols of element
+		element = re.split(' |\n', elementa[i])
+
+		while '' in element:
+			element.remove('')
+
+		elearray.append(element[0])
+	
+	if chkline < filelen:
+		oldchkrow = re.split('\.|\d', oldfile[chkline]) # to rewrite the chk file name
+
+		while '' in oldchkrow:
+			oldchkrow.remove('')
+
+		chkrow = oldchkrow[0] + strcycle + '.' + oldchkrow[1]
+
+	for i in range(linenu): 
+		if i == chkline:
+			newfile.write(chkrow)
+			continue
+
+		newfile.write(oldfile[i])
+
+	for i in range(linenu, linenu + numele): # the new gjf file is the same as old gjf file except position
+		newfile.write(' ')
+		newfile.write(elearray[i - linenu])
+		newfile.write('                  ')
+
+		for ii in range(3):
+			newfile.write('    ')
+			newfile.write(str(newpos[i -linenu][ii]))
+		
+		newfile.write('\n')
+
+	for i in range(linenu + numele, len(oldfile)):
+		newfile.write(oldfile[i])
+
+	newfile.close()
+	return newgjf
+
+def getpos(gjfname, numele, outname):
+	'''
+	from the first gjf file to get the first position
+	'''
+	gjffile = open(gjfname).readlines()
+	filelen = len(gjffile)
+	
+	linenu = 4 # ensure the positine line number.
+	for i in range(filelen):
+		if gjffile[i][0] in ['%', '#']:
+			linenu += 1
+
+	numpos  = gjffile[linenu: linenu + numele]
+
+	pos = []
+	sym = []
+	for i in range(numele):
+		posarray = re.split(' |\n', numpos[i])
+
+		while '' in posarray:
+			posarray.remove('')
+
+		if posarray[0] == 1:
+			posarray[0] = ' ' + posarray[0]
+
+		pos.append(posarray[1:])
+		sym.append(posarray[0])
+
+	pos = np.array(pos, dtype = float)
+
+	return pos, sym
+	
+def writecon(outname, sym, con, group):
+	'''
+	writecon means write content.
+	because the out file has to many similarity content about force, momentum and position
+	so use this function to write down the similarity content in every cycle
+	'''
+	outfile = open(outname, 'a+')
+	outfile.write('\n')
+	outfile.write(' '*35)
+	outfile.write('The %s'%group)
+	outfile.write('\n')
+	outfile.write(' Symbol')
+	outfile.write(' '*24)
+	outfile.write('x')
+	outfile.write(' '*16)
+	outfile.write('y')
+	outfile.write(' '*16)
+	outfile.write('z')
+	outfile.write('\n')
+	outfile.write('-'*77)
+	outfile.write('\n')
+
+	copysym = copy.deepcopy(sym)
+	for i in range(numele):
+		outfile.write('   ')
+
+		if len(copysym[i]) == 1:
+			copysym[i] = copysym[i] + ' '
+
+		outfile.write(copysym[i])
+		outfile.write(' '*15)
+
+		'''
+		this loop is for aline of the number
+		'''
+		for ii in range(3):
+			floatcon = float(con[i][ii])
+			if floatcon == 0:
+				sign = str(abs(floatcon))
+				size = 14 - len(sign)
+				sign = sign + size * '0'
+				len0 = 4
+
+			elif floatcon > 0:
+				sign = str(con[i][ii])
+				size = 14 - len(sign)
+				sign = sign + size * '0'
+				len0 = 4
+
+			elif float(con[i][ii]) < 0:
+				sign = str(con[i][ii])
+				size = 15 - len(sign)
+				sign = sign + size * '0'
+				len0 = 3
+
+			outfile.write(' '*len0)
+			outfile.write(sign)
+
+		outfile.write('\n')
+
+	outfile.write('-'*77)
+	outfile.write('\n'*2)
+	outfile.close()
+
+def rungau(newgjffile):
+	'''
+	for run the gaussian progam, and return the log file
+	'''
+	newfilename = newgjffile.split('.')[0]
+	os.system('g09 %s' %newgjffile)
+	
+	return '%s.log' %newfilename
+
+def newpos(x0, p0, f0, mass, dt):
+	'''
+	get the new position using the classical mechanics
+	'''
+	x1 = x0 + p0 * dt / mass + f0 * dt ** 2 / (2 * mass)
+	return x1
+
+def newmom(p0, f0, f1, dt):
+	'''
+	get the new momentum using the classical mechanics
+	'''
+	p1 = p0 + dt * (f0 + f1) / 2
+	return p1
+
+def kine(mom, sym, kinetic, outname):
+	'''
+	get the kinetic energy from the momentum
+	'''
+	kine = 0
+
+	for i in range(len(sym)):
+		mass = float(mas[sym[i]])
+		momu = mom[i] ** 2 / mass
+		kine = kine + momu.sum()
+
+	kinetic.append(kine)
+	
+	outfile = open(outname, 'a+')
+	outfile.write('the total kinetic is %f a.u.' %kinetic[-1])
+	outfile.write('\n'*2)
+	outfile.close()
+
+def getforce(logname, sym, numele, outname, potential, start):
+	'''
+	from the log file getting the force and potential energy
+	and write down to the out file
+	'''
+	logfile = open(logname).readlines()
+
+	signforce = 0
+	signdone  = 0
+	itnenergy = []
+	for i in range(len(logfile)):
+		if 'Forces ' in logfile[i]:
+			signforce = i
+
+		if 'SCF Done' in logfile[i]:
+			signdone = i
+		elif 'ITN=' in logfile[i]:
+			itnenergy.append(i)
+	
+	if 'Forces ' in logfile[signforce]:
+		numforce = logfile[signforce + 3: signforce + 3 + numele]
+	else:
+		endtime = datetime.datetime.now()
+		usetime = endtime - start
+
+		outfile = open(outname, 'a+')
+		outfile.write('*'*99)
+		outfile.write('\n')
+		outfile.write('ERROR FORCES')
+		outfile.write('\n')
+		outfile.write('Gd'*49)
+		outfile.write('\n')
+		outfile.write('*'*99)
+		outfile.write('\n')
+		outfile.write('no force in log')
+		outfile.write('\n')
+		outfile.write('Start program at  ')
+		outfile.write(str(start))
+		outfile.write('\n')
+		outfile.write('Use time  ')
+		outfile.write(str(usetime))
+		outfile.close()
+		exit('no force in the log')
+
+	far = []
+	for i in range(numele):
+		eachforce = re.split(' |\n', numforce[i])
+
+		while '' in eachforce:
+			eachforce.remove('')
+
+		far.append(eachforce[2:])
+
+	far = np.array(far, dtype = float)
+
+	writecon(outname, sym, far, 'Forces')
+	
+	'''
+	casscf write down the energy using "ITN="
+	'''
+	outfile = open(outname, 'a+')
+	if 'SCF Done' in logfile[signdone]:
+		outfile.write(logfile[signdone])
+		outfile.write('\n')
+		outfile.close()
+
+		energyrow = logfile[signdone].split(' ')
+
+		while '' in energyrow:
+			energyrow.remove('')
+
+		outenergy = float(energyrow[4])
+		potential.append(outenergy)
+	
+	elif 'ITN=' in logfile[itnenergy[-1]]:
+		outfile.write(logfile[itnenergy[-1]])
+		outfile.write('\n')
+		outfile.close()
+
+		energyrow = logfile[itnenergy[-1]].split(' ')
+
+		while '' in energyrow:
+			energyrow.remove('')
+
+		outenergy = float(energyrow[5])
+		potential.append(outenergy)
+
+	else:
+		endtime = datetime.datetime.now()
+		usetime = endtime - start
+
+		outfile.write('*'*99)
+		outfile.write('\n')
+		outfile.write('ERROR ENERGY')
+		outfile.write('\n')
+		outfile.write('Gd'*49)
+		outfile.write('\n')
+		outfile.write('*'*99)
+		outfile.write('\n')
+		outfile.write('no SCF Done in log')
+		outfile.write('\n')
+		outfile.write('Start program at  ')
+		outfile.write(str(start))
+		outfile.write('\n')
+		outfile.write('Use time  ')
+		outfile.write(str(usetime))
+		outfile.close()
+		exit('no SCF Done in the log')
+
+	return far
+
+'''
+输入文件inp为所需参数
+第一行为间隔时间（步长）
+第二行为总原子个数
+第三行为初始原子所需给定能量
+若不指定则默认为0, int(nem[i][3]),
+所给定原子个数以分号（;）隔开
+给定原子和给定动量以（,）隔开
+第四行为所需gjf文件的文件名（不带后缀）
+第五行若不为0，则为循环次数
+第六行若不为0，则为收敛能量
+'''
+inp = open(inputfile).readlines()
+dt  = float(inp[0])
+numele = int(inp[1])
+totalmom = re.split(';|\n', inp[2])
+filename = inp[3].strip()
+numcycle = int(inp[4])
+scfenery = float(inp[5])
+
+gjf0 = "%s.gjf" %filename # get the first gjf file name
+out0 = "%s.out" %filename # out file's name
+
+totalpotential= [] # menory the potential energy
+totalkinetic  = [] # menory the kinetic energy
+
+while '' in totalmom:
+	totalmom.remove('')
+
+'''
+get the atomic momentum from the input file
+if the input file don't give, set this atom's momentum zero
+'''
+numbermom = {}
+for i in range(len(totalmom)):
+	everymom = totalmom[i].split(',')
+	symbolm = int(everymom[0]) - 1
+	numbermom[symbolm] = everymom[1:]
+	
+for i in range(numele):
+	if i not in numbermom:
+		numbermom[i] = [0, 0, 0]
+
+originmom = []
+for i in range(numele):
+	originmom.append(numbermom[i])
+
+outfile = open(out0, 'a+') # create the output file 
+outfile.write('*'*99)
+outfile.write('\n')
+outfile.write('*'*36)
+outfile.write(' Welcome to zongzi program ')
+outfile.write('*'*36)
+outfile.write('\n')
+outfile.write('*'*99,)
+
+outfile.write('\n'*2)
+outfile.write('input file name is <%s>' %gjf0)
+outfile.write('\n')
+outfile.write('step(time) is %d a.u.' %dt)
+outfile.write('\n')
+outfile.write('number of atoms need to calculate is %d' %numele)
+outfile.write('\n'*2)
+
+outfile.write('='*84)
+outfile.write('\n')
+outfile.write(' '*41)
+outfile.write('cycle 0')
+outfile.write('\n')
+outfile.write('='*84)
+outfile.write('\n'*2)
+outfile.close()
+
+pos0, symb = getpos(gjf0, numele, out0) # get the origin position and element symbols
+writecon(out0, symb, pos0, 'coordinate') # write down the origin position
+
+log0 = rungau(gjf0) # get the new log file
+far0 = getforce(log0, symb, numele, out0, totalpotential, start) # get the force
+
+# charge momentum type to numpy array and write down momentum and kinetic energy
+mom0 = np.array(originmom, dtype = float) 
+writecon(out0, symb, mom0, 'momentum')
+kine(mom0, symb, totalkinetic, out0)
+
+intcycle = 1 # mrak the cycle number
+while 1:
+	outfile = open(out0, 'a+')
+	outfile.write('\n')
+	outfile.write('='*84)
+	outfile.write('\n')
+	outfile.write(' '*41)
+	outfile.write('Cycle %d' %intcycle)
+	outfile.write('\n')
+	outfile.write('='*84)
+	outfile.write('\n'*2)
+	outfile.close()
+	
+	# get the new position
+	for i in range(numele):
+		mass = float(mas[symb[i]])
+		x1 = newpos(pos0[i], mom0[i], far0[i], mass, dt)
+		pos0[i] = x1
+
+	writecon(out0, symb, pos0, 'coordinate') # write down the position
+
+	gjf0 = regjf(gjf0, pos0, intcycle, numele, filename) # create the new gjf file
+	log0 = rungau(gjf0) # get the new log file
+
+	far1 = copy.deepcopy(far0) # mark the old force
+	far0 = getforce(log0, symb, numele, out0, totalpotential, start) # get the new force
+
+	# get the new momentum
+	for i in range(numele):
+		p1 = newmom(mom0[i], far1[i], far0[i], dt)
+		mom0[i] = p1
+
+	# write down the momentum and kunetic energy
+	writecon(out0, symb, mom0, 'momentum')
+	kine(mom0, symb, totalkinetic, out0)
+	
+	if numcycle:
+		'''
+		cycle normal exit
+		'''
+		if intcycle == numcycle:
+			endtime = datetime.datetime.now()
+			usetime = endtime - start
+
+			outfile = open(out0, 'a+')
+			outfile.write('\n')
+			outfile.write('*'*99)
+			outfile.write('\n')
+			outfile.write('cycle %d normal exit' %intcycle)
+			outfile.write('\n')
+			outfile.write('Start program at  ')
+			outfile.write(str(start))
+			outfile.write('\n')
+			outfile.write('Use time  ')
+			outfile.write(str(usetime))
+			outfile.close()
+			exit('cycle normal exit')
+
+	if scfenery:
+		'''
+		energy normal exit
+		'''
+		if abs(totalpotential[-1] - totalpotential[-2]) < scfenery:
+			endtime = datetime.datetime.now()
+			usetime = endtime - start
+
+			outfile = open(out0, 'a+')
+			outfile.write('\n')
+			outfile.write('*'*99)
+			outfile.write('\n')
+			outfile.write('cycle %d normal exit' %intcycle)
+			outfile.write('\n')
+			outfile.write('Start program at  ')
+			outfile.write(str(start))
+			outfile.write('\n')
+			outfile.write('Use time  ')
+			outfile.write(str(usetime))
+			outfile.close()
+			exit('energy normal exit')
+
+	intcycle += 1
