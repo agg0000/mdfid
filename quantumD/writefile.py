@@ -67,6 +67,8 @@ def writecon(outname, sym, con, group):
 	outfile.write('\n'*2)
 	outfile.close()
 
+#------------------------------------------------------------------------------------
+
 def kine(mom, sym, kinetic, outname):
 	'''
 	get the kinetic energy from the momentum
@@ -85,4 +87,22 @@ def kine(mom, sym, kinetic, outname):
 	outfile.write('\n'*2)
 	outfile.close()
 
+#------------------------------------------------------------------------------------
 
+def werror(outname, keyword, starttime)
+	'''
+	for write down the error infomation
+	'''
+
+	endtime = datetime.datetime.now()
+	usetime = endtime - starttime
+
+	outfile = open(outname, 'a+')
+	outfile.write('*'*99 + '\n')
+	outfile.write('ERROR %s' %keyword + '\n')
+	outfile.write('Grad'*24 + '\n')
+	outfile.write('*'*99 + '\n')
+	outfile.write('no %s in outfile\n' %keyword)
+	outfile.write('start program at ' + str(starttime) + '\n')
+	outfile.write('use time ' + str(usetime))
+	outfile.close()

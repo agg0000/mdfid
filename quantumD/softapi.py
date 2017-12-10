@@ -8,11 +8,17 @@ import re
 import datetime
 import numpy as np
 
+import writefile
+
 def softname(softuse):
 	'''
 	convince the quantum chemistry from the keyword
 	'''
 	softall = {"gaussian":gaussian()}
+
+	if softuse not in softall:
+		exit("please use 'gaussian'")
+
 	return softall.get(softuse)
 
 #####################################################################################
@@ -26,14 +32,21 @@ class gaussian():
 	def __init__(self):
 		self = self
 
-	def regjf(self, oldgjf, newpos, intcycle, numele, gjfname):
+#-------------------------------------------------------------------------------------
+
+	def getfile(self, getname):
+		return "%s.gjf" %getname
+
+#-------------------------------------------------------------------------------------
+
+	def reinpotfile(self, oldname, newpos, intcycle, numele, getname):
 		'''
 		use the new position to create a new gjf file
 		'''
-		strcycle  = str(intcycle) # mark the number of gjf file
-		newgjf  = "%s%s.gjf" %(gjfname, strcycle)
-		oldfile = open(oldgjf).readlines()
-		newfile = open(newgjf, 'a+')
+		strcycle= str(intcycle) # mark the number of gjf file
+		newname = "%s%s.gjf" %(getname, strcycle)
+		oldfile = open(oldname).readlines()
+		newfile = open(newname, 'a+')
 		filelen = len(oldfile)
 
 		linenu = 4 # ensure the positine line number.
@@ -48,7 +61,7 @@ class gaussian():
 		elearray = [] # elearray means element array
 		elementa = oldfile[linenu: numele + linenu] # elementa means all elements of rows
 		for i in range(numele):# to get the symbols of element
-			element = re.split(' |\n', elementa[i])
+			element = elementa[i].split(' ')
 
 			while '' in element:
 				element.remove('')
@@ -85,164 +98,88 @@ class gaussian():
 			newfile.write(oldfile[i])
 
 		newfile.close()
-		return newgjf
-
-#------------------------------------------------------------------------------------
-
-	def getpos(self, gjfname, numele, outname):
-		'''
-		from the first gjf file to get the first position
-		'''
-		gjffile = open(gjfname).readlines()
-		filelen = len(gjffile)
-	
-		linenu = 4 # ensure the positine line number.
-		for i in range(filelen):
-			if gjffile[i][0] in ['%', '#']:
-				linenu += 1
-
-		numpos  = gjffile[linenu: linenu + numele]
-
-		pos = []
-		sym = []
-		for i in range(numele):
-			posarray = re.split(' |\n', numpos[i])
-
-			while '' in posarray:
-				posarray.remove('')
-
-			if posarray[0] == 1:
-				posarray[0] = ' ' + posarray[0]
-
-			pos.append(posarray[1:])
-			sym.append(posarray[0])
-
-		pos = np.array(pos, dtype = float)
-
-		return pos, sym
+		return newname
 
 #-------------------------------------------------------------------------------------
 
-	def rungau(newgjffile):
+	def runsoft(self, inputfile):
 		'''
 		for run the gaussian progam, and return the log file
 		'''
-		newfilename = newgjffile.split('.')[0]
-		os.system('g09 %s' %newgjffile)
+		inputname = inputfile.split('.')[0]
+		os.system('g09 %s' %inputfile)
 	
-		return '%s.log' %newfilename
+		return '%s.log' %inputname
 
 #------------------------------------------------------------------------------------
 
-	def getforce(logname, sym, numele, outname, potential, start):
+	def getinfo(self, resultname, numele, outname, potential, starttime):
 		'''
-		from the log file getting the force and potential energy
-		and write down to the out file
+		get the force and position from the soft output file
+		only use to calculate the Hartree-Fork theory
 		'''
-		logfile = open(logname).readlines()
+		resultfile = open(resultname).readlines()
 
-		signforce = 0
-		signdone  = 0
-		itnenergy = []
-		for i in range(len(logfile)):
-			if 'Forces ' in logfile[i]:
-				signforce = i
+		signf = 0
+		signe = 0
+		signq = 0
+		for i in range(len(resultname)):
+			if 'Forces 'in resultfile[i]:
+				signf = i
 
-			if 'SCF Done' in logfile[i]:
-				signdone = i
-			elif 'ITN=' in logfile[i]:
-				itnenergy.append(i)
-	
-		if 'Forces ' in logfile[signforce]:
-			numforce = logfile[signforce + 3: signforce + 3 + numele]
+			if 'SCF Done' in resultfile[i]:
+				signe = i
+
+			if 'Input orientation' in resultfile[i]:
+				signq = i
+
+		if 'Force ' in resultfile[signf]:
+			numf = resultfile[signf + 3: signf + 3 + numele]
 		else:
-			endtime = datetime.datetime.now()
-			usetime = endtime - start
+			writefile.werroe(outname, 'forces', starttime)
+			exit('no force in outfile')
 
-			outfile = open(outname, 'a+')
-			outfile.write('*'*99)
-			outfile.write('\n')
-			outfile.write('ERROR FORCES')
-			outfile.write('\n')
-			outfile.write('Gd'*49)
-			outfile.write('\n')
-			outfile.write('*'*99)
-			outfile.write('\n')
-			outfile.write('no force in log')
-			outfile.write('\n')
-			outfile.write('Start program at  ')
-			outfile.write(str(start))
-			outfile.write('\n')
-			outfile.write('Use time  ')
-			outfile.write(str(usetime))
-			outfile.close()
-			exit('no force in the log')
-
-		far = []
+		sfar = []
 		for i in range(numele):
-			eachforce = re.split(' |\n', numforce[i])
+			eachforce = numf[i].split(' ')
 
 			while '' in eachforce:
 				eachforce.remove('')
 
-			far.append(eachforce[2:])
+			sfar.append(eachforce[2:])
 
-		far = np.array(far, dtype = float)
+		far = np.array(sfar, dtype = float)
 
-		writecon(outname, sym, far, 'Forces')
-	
-		'''
-		casscf write down the energy using "ITN="
-		'''
-		outfile = open(outname, 'a+')
-		if 'SCF Done' in logfile[signdone]:
-			outfile.write(logfile[signdone])
-			outfile.write('\n')
-			outfile.close()
-
-			energyrow = logfile[signdone].split(' ')
-
-			while '' in energyrow:
-				energyrow.remove('')
-
-			outenergy = float(energyrow[4])
-			potential.append(outenergy)
-	
-		elif 'ITN=' in logfile[itnenergy[-1]]:
-			outfile.write(logfile[itnenergy[-1]])
-			outfile.write('\n')
-			outfile.close()
-
-			energyrow = logfile[itnenergy[-1]].split(' ')
+		if 'SCF Done' in resultfile[signe]:
+			energyrow = resultfile[signe].split(' ')
 
 			while '' in energyrow:
 				energyrow.remove('')
 
 			outenergy = float(energyrow[5])
 			potential.append(outenergy)
-
 		else:
-			endtime = datetime.datetime.now()
-			usetime = endtime - start
+			writefile.werroe(outname, 'SCF Done', starttime)
 
-			outfile.write('*'*99)
-			outfile.write('\n')
-			outfile.write('ERROR ENERGY')
-			outfile.write('\n')
-			outfile.write('Gd'*49)
-			outfile.write('\n')
-			outfile.write('*'*99)
-			outfile.write('\n')
-			outfile.write('no SCF Done in log')
-			outfile.write('\n')
-			outfile.write('Start program at  ')
-			outfile.write(str(start))
-			outfile.write('\n')
-			outfile.write('Use time  ')
-			outfile.write(str(usetime))
-			outfile.close()
-			exit('no SCF Done in the log')
+		if 'Input orientation' in resultfile[signq]:
+			numq = resultfile[signq + 5: sign + 5 + numele]
+		else:
+			writefile.werroe(outname, 'position', starttime)
+			exit('no position in outfile')
 
-		return far
+		symb = []
+		spos = []
+		for i in range(numele):
+			eachpos = numq.split(' ')
+
+			while '' in eachpos:
+				eachpos.remove('')
+
+			spos.append(eachpos[3:])
+			symb.append(eachpos[1])
+
+		pos = np.array(spos, dtype = float)
+
+		return pos, far
 
 #####################################################################################
