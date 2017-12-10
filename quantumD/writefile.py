@@ -67,6 +67,8 @@ def writecon(outname, sym, con, group):
 	outfile.write('\n'*2)
 	outfile.close()
 
+	return
+
 #------------------------------------------------------------------------------------
 
 def kine(mom, sym, kinetic, outname):
@@ -87,6 +89,8 @@ def kine(mom, sym, kinetic, outname):
 	outfile.write('\n'*2)
 	outfile.close()
 
+	return
+
 #------------------------------------------------------------------------------------
 
 def werror(outname, keyword, starttime)
@@ -106,3 +110,5 @@ def werror(outname, keyword, starttime)
 	outfile.write('start program at ' + str(starttime) + '\n')
 	outfile.write('use time ' + str(usetime))
 	outfile.close()
+
+	return
