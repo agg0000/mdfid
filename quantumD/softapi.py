@@ -39,6 +39,49 @@ class gaussian():
 
 #-------------------------------------------------------------------------------------
 
+	def getfreq(self, filename, starttime):
+		'''
+		get the opt and freq infomation for origin configuration
+		the detail of wigner sampling is from sharc(Surface Hopping including ARbitrary Couplings)
+		http://sharc-md.org
+		'''
+		origincon = open('%s.gjf' %filename).readlines()
+		lencon = len(origincon)
+
+		setnumber = lencon + 1
+		for i in range(setnumber):
+			if '#' in origincon[i]:
+				setnumber = i
+
+		basisset = 'mark'
+		if setnumber < lencon:
+			setarray = origincon[setnumber].split(' ')
+
+			for keyele in setarray:
+				if '\\' in keyele:
+					basisset = keyele
+			else:
+				exit('error input gjf')
+				writefile.werroe(outname, 'error input gjf', starttime)
+				
+		if basisset == 'mark':
+			exit('error basis set')
+			writefile.werroe(outname, 'error basis set', starttime)
+
+		origincon[setnumber] = '# %s opt freq\n' %basisset
+		newgjf = filename + 'freq.gjf'
+
+		newgjfcon = open(newgjf, 'a+')
+		for lin in origincon:
+			newgjfcon.write(lin)
+
+		newgjfcon.close()
+
+		newlog = self.runsoft(newgjf)
+		logcon = open(newlog).readlines()
+
+#-------------------------------------------------------------------------------------
+
 	def reinpotfile(self, oldname, newpos, intcycle, numele, getname):
 		'''
 		use the new position to create a new gjf file
@@ -160,6 +203,7 @@ class gaussian():
 			potential.append(outenergy)
 		else:
 			writefile.werroe(outname, 'SCF Done', starttime)
+			exit('no energy in outfile')
 
 		if 'Input orientation' in resultfile[signq]:
 			numq = resultfile[signq + 5: sign + 5 + numele]
