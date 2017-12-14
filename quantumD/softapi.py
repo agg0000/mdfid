@@ -38,13 +38,8 @@ class gaussian():
 		return "%s.gjf" %getname
 
 #-------------------------------------------------------------------------------------
-
+	'''
 	def getfreq(self, filename, starttime, outname):
-		'''
-		get the opt and freq infomation for origin configuration
-		the detail of wigner sampling is from sharc(Surface Hopping including ARbitrary Couplings)
-		http://sharc-md.org
-		'''
 		origincon = open('%s.gjf' %filename).readlines()
 		lencon = len(origincon)
 
@@ -62,11 +57,11 @@ class gaussian():
 					basisset = keyele
 			else:
 				exit('error input gjf')
-				writefile.werroe(outname, 'error input gjf', starttime)
+				writefile.werror(outname, 'error input gjf', starttime)
 				
 		if basisset == 'mark':
 			exit('error basis set')
-			writefile.werroe(outname, 'error basis set', starttime)
+			writefile.werror(outname, 'error basis set', starttime)
 
 		origincon[setnumber] = '# %s opt freq\n' %basisset
 		newgjf = filename + 'freq.gjf'
@@ -87,7 +82,7 @@ class gaussian():
 
 		if not len(linenum):
 			exit('error freq')
-			writefile.werroe(outname, 'error freq', starttime)
+			writefile.werror(outname, 'error freq', starttime)
 
 		freq = {}
 		for l in linenum:
@@ -96,7 +91,7 @@ class gaussian():
 			for ii, ele in enumerate(freqele):
 				if float(ele) < 10:
 					continue
-
+	'''
 #-------------------------------------------------------------------------------------
 
 	def reinpotfile(self, oldname, newpos, intcycle, numele, getname):
@@ -106,7 +101,7 @@ class gaussian():
 		strcycle= str(intcycle) # mark the number of gjf file
 		newname = "%s%s.gjf" %(getname, strcycle)
 		oldfile = open(oldname).readlines()
-		newfile = open(newname, 'a+')
+		newfile = open(newname, 'w')
 		filelen = len(oldfile)
 
 		linenu = 4 # ensure the positine line number.
@@ -190,7 +185,7 @@ class gaussian():
 	
 #-------------------------------------------------------------------------------------
 
-def getinitfile():
+#	def getinitfile():
 
 #-------------------------------------------------------------------------------------
 
@@ -205,7 +200,7 @@ def getinitfile():
 
 #------------------------------------------------------------------------------------
 
-	def getforce(self, resultname, numele, outname, potential, starttime):
+	def getforce(self, resultname, numele, outname, potential, symb, starttime):
 		'''
 		get the force and position from the soft output file
 		only use to calculate the Hartree-Fork theory
@@ -214,18 +209,17 @@ def getinitfile():
 
 		signf = 0
 		signe = 0
-		signq = 0
-		for i in range(len(resultname)):
+		for i in range(len(resultfile)):
 			if 'Forces 'in resultfile[i]:
 				signf = i
 
 			if 'SCF Done' in resultfile[i]:
 				signe = i
 
-		if 'Force ' in resultfile[signf]:
+		if 'Forces ' in resultfile[signf]:
 			numf = resultfile[signf + 3: signf + 3 + numele]
 		else:
-			writefile.werroe(outname, 'forces', starttime)
+			writefile.werror(outname, 'forces', starttime)
 			exit('no force in outfile')
 
 		sfar = []
@@ -238,19 +232,19 @@ def getinitfile():
 			sfar.append(eachforce[2:])
 
 		far = np.array(sfar, dtype = float)
-		writefile.writecon(out0, symb, far0, 'Forces')
+		writefile.writecon(outname, symb, far, 'Forces', numele)
 
 		if 'SCF Done' in resultfile[signe]:
 			energyrow = resultfile[signe].split()
 
-			outenergy = float(energyrow[5])
+			outenergy = float(energyrow[4])
 			potential.append(outenergy)
 
 			outfile = open(outname, 'a+')
 			outfile.write(resultfile[signe])
 			outfile.close()
 		else:
-			writefile.werroe(outname, 'SCF Done', starttime)
+			writefile.werror(outname, 'SCF Done', starttime)
 			exit('no energy in outfile')
 
 		return far

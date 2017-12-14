@@ -36,7 +36,7 @@ inp = open(inputfile).readlines()
 dt = float(inp[0])
 numele = int(inp[1])
 totalmom = re.split(';|\n', inp[2])
-filename = inp[3],strip()
+filename = inp[3].strip()
 numcycle = int(inp[4])
 scfenry = float(inp[5])
 softuse = inp[6].strip()
@@ -54,7 +54,7 @@ while '' in totalmom:
 numbermom = {}
 for mom in totalmom:
 	everymom = mom.split(',')
-	symbolm = int(everymom[0] - 1)
+	symbolm = int(everymom[0]) - 1
 	numbermom[symbolm] = everymom[1:]
 
 for i in range(numele):
@@ -80,13 +80,13 @@ outfile.write('='*84 + '\n'*2)
 outfile.close()
 
 pos0, symb = quansoft.getpos(inputfile, numele)
-writefile.writecon(out0, symb, pos0, 'coordinate')
+writefile.writecon(out0, symb, pos0, 'coordinate', numele)
 
 runfile = quansoft.runsoft(inputfile)
-far0 = quansoft.getforce(runfile, numele, out0, totalv, start)
+far0 = quansoft.getforce(runfile, numele, out0, totalv, symb, start)
 
 mom0 = np.array(originmom, dtype = float)
-writefile.writecon(out0, symb, mom0, 'momentum')
+writefile.writecon(out0, symb, mom0, 'momentum', numele)
 writefile.kine(mom0, symb, totalt, out0)
 
 intcycle = 1
@@ -99,31 +99,32 @@ while True:
 
 	for i in range(numele):
 		mass = float(mas[symb[i]])
-		x1 = pos0[i] + mom0[i] * dt / mass + far0[i] * dt ** 2 / (2 * mas)
-		pos[i] = x1
+		x1 = pos0[i] + mom0[i] * dt / mass + far0[i] * dt ** 2 / (2 * mass)
+		pos0[i] = x1
 
-	writefile.writecon(out0, symb, pos0, 'coordinate')
+	writefile.writecon(out0, symb, pos0, 'coordinate', numele)
 
 	inputfile = quansoft.reinpotfile(inputfile, pos0, intcycle, numele, filename)
 	runfile = quansoft.runsoft(inputfile)
 
 	far1 = copy.deepcopy(far0)
-	far0 = getforce(runfile, numele, out0, totalv, start)
+	far0 = quansoft.getforce(runfile, numele, out0, totalv, symb, start)
 
 	for i in range(numele):
-		p1 = mom[i] + dt * (far0[i] + far1[i]) / 2
+		p1 = mom0[i] + dt * (far0[i] + far1[i]) / 2
 		mom0[i] = p1
 
-	writefile.writecon(out0, symb, mom0, 'momentum')
-	writefile.kine(mom0m symb, totalt, out0)
+	writefile.writecon(out0, symb, mom0, 'momentum', numele)
+	writefile.kine(mom0, symb, totalt, out0)
 
 	if numcycle:
 		if intcycle == numcycle:
 			writefile.endtime(out0, 'cycle', start)
 			exit('cycle normal exit')
 
-	if scfenery:
-		if abs(totalv[-1] - totalv[-2]) < scfenery:
+	if scfenry:
+		if abs(totalv[-1] - totalv[-2]) < scfenry:
 			writefile.endtime(out0, 'energy', start)
+			exit('energy normal exit')
 
 	intcycle += 1
