@@ -10,20 +10,9 @@ def writecon(outname, sym, con, group):
 	so use this function to write down the similarity content in every cycle
 	'''
 	outfile = open(outname, 'a+')
-	outfile.write('\n')
-	outfile.write(' '*35)
-	outfile.write('The %s'%group)
-	outfile.write('\n')
-	outfile.write(' Symbol')
-	outfile.write(' '*24)
-	outfile.write('x')
-	outfile.write(' '*16)
-	outfile.write('y')
-	outfile.write(' '*16)
-	outfile.write('z')
-	outfile.write('\n')
-	outfile.write('-'*77)
-	outfile.write('\n')
+	outfile.write('\n' + ' '*35 + 'The %s'%group + '\n')
+	outfile.write(' Symbol' + ' '*24 + 'x' + ' '*16 + 'y' + ' '*16 + 'z\n')
+	outfile.write('-'*77 + '\n')
 
 	copysym = copy.deepcopy(sym)
 	for i in range(numele):
@@ -63,8 +52,7 @@ def writecon(outname, sym, con, group):
 
 		outfile.write('\n')
 
-	outfile.write('-'*77)
-	outfile.write('\n'*2)
+	outfile.write('-'*77 + '\n'*2)
 	outfile.close()
 
 	return
@@ -93,7 +81,7 @@ def kine(mom, sym, kinetic, outname):
 
 #------------------------------------------------------------------------------------
 
-def werror(outname, keyword, starttime)
+def werror(outname, keyword, starttime):
 	'''
 	for write down the error infomation
 	'''
@@ -111,4 +99,20 @@ def werror(outname, keyword, starttime)
 	outfile.write('use time ' + str(usetime))
 	outfile.close()
 
+	return
+
+#------------------------------------------------------------------------------------
+
+def endtime(outname, keyword, starttime):
+	endtime = datetime.datetime.now()
+	usetime = endtime - starttime
+
+	outfile = open(outname, 'a+')
+	outfile.write('\n' + '*'*99 + '\n')
+	outfile.write('cycle %d normal exit' %intcycle + '\n')
+	outfile.write('Start program at  ' + str(starttime) + '\n')
+	outfile.write('Use time  ' + str(usetime) + '\n')
+	outfile.wrrite('%s normal exit' %keyword)
+	outfile.close()
+	
 	return

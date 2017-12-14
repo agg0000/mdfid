@@ -39,7 +39,7 @@ class gaussian():
 
 #-------------------------------------------------------------------------------------
 
-	def getfreq(self, filename, starttime):
+	def getfreq(self, filename, starttime, outname):
 		'''
 		get the opt and freq infomation for origin configuration
 		the detail of wigner sampling is from sharc(Surface Hopping including ARbitrary Couplings)
@@ -79,6 +79,23 @@ class gaussian():
 
 		newlog = self.runsoft(newgjf)
 		logcon = open(newlog).readlines()
+
+		linenum = []
+		for i ,line in enumerate(logcon):
+			if 'Frequencies' in line:
+				linenum.append(i + 5)
+
+		if not len(linenum):
+			exit('error freq')
+			writefile.werroe(outname, 'error freq', starttime)
+
+		freq = {}
+		for l in linenum:
+			freqele = logcon[l].split()
+
+			for ii, ele in enumerate(freqele):
+				if float(ele) < 10:
+					continue
 
 #-------------------------------------------------------------------------------------
 
@@ -145,6 +162,38 @@ class gaussian():
 
 #-------------------------------------------------------------------------------------
 
+	def getpos(self, oldname, numele):
+		'''
+		from the first gjf file to get the first position
+		'''
+		oldfile = open(oldname).readlines()
+		filelen = len(oldfile)
+
+		linenu = 4 # ensure the positine line number.
+		for i in range(filelen):
+			if oldfile[i][0] in ['%', '#']:
+				linenu += 1
+
+		numpos  = oldfile[linenu: linenu + numele]
+
+		pos = []
+		sym = []
+		for i in range(numele):
+			posarray = numpos[i].split()
+
+			pos.append(posarray[1:])
+			sym.append(posarray[0])
+
+		pos = np.array(pos, dtype = float)
+
+		return pos, sym
+	
+#-------------------------------------------------------------------------------------
+
+def getinitfile():
+
+#-------------------------------------------------------------------------------------
+
 	def runsoft(self, inputfile):
 		'''
 		for run the gaussian progam, and return the log file
@@ -156,7 +205,7 @@ class gaussian():
 
 #------------------------------------------------------------------------------------
 
-	def getinfo(self, resultname, numele, outname, potential, starttime):
+	def getforce(self, resultname, numele, outname, potential, starttime):
 		'''
 		get the force and position from the soft output file
 		only use to calculate the Hartree-Fork theory
@@ -172,9 +221,6 @@ class gaussian():
 
 			if 'SCF Done' in resultfile[i]:
 				signe = i
-
-			if 'Input orientation' in resultfile[i]:
-				signq = i
 
 		if 'Force ' in resultfile[signf]:
 			numf = resultfile[signf + 3: signf + 3 + numele]
@@ -192,38 +238,21 @@ class gaussian():
 			sfar.append(eachforce[2:])
 
 		far = np.array(sfar, dtype = float)
+		writefile.writecon(out0, symb, far0, 'Forces')
 
 		if 'SCF Done' in resultfile[signe]:
-			energyrow = resultfile[signe].split(' ')
-
-			while '' in energyrow:
-				energyrow.remove('')
+			energyrow = resultfile[signe].split()
 
 			outenergy = float(energyrow[5])
 			potential.append(outenergy)
+
+			outfile = open(outname, 'a+')
+			outfile.write(resultfile[signe])
+			outfile.close()
 		else:
 			writefile.werroe(outname, 'SCF Done', starttime)
 			exit('no energy in outfile')
 
-		if 'Input orientation' in resultfile[signq]:
-			numq = resultfile[signq + 5: sign + 5 + numele]
-		else:
-			writefile.werroe(outname, 'position', starttime)
-			exit('no position in outfile')
-
-		symb = []
-		spos = []
-		for i in range(numele):
-			eachpos = numq.split(' ')
-
-			while '' in eachpos:
-				eachpos.remove('')
-
-			spos.append(eachpos[3:])
-			symb.append(eachpos[1])
-
-		pos = np.array(spos, dtype = float)
-
-		return pos, far
+		return far
 
 #####################################################################################
