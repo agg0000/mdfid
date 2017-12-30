@@ -54,11 +54,10 @@ for word in fd:
 		totalmom.append(fd[word])
 
 quansoft = softapi.softname(softuse)
-inputfile = quansoft.getfile(filename)
 out0 = "%s.zzop" %filename
 
 if keyname == 'i':
-	totalv, pos0, symb, far0, mom0, intcycle = ic.initp(numele, totalmom, softuse, inputfile, out0, dt, start)
+	totalv, pos0, symb, far0, mom0, intcycle = ic.initp(numele, totalmom, softuse, filename, out0, dt, start)
 elif keyname == 'c':
 	totalv, pos0, symb, far0, mom0, intcycle = ic.continuep(numele, out0, start)
 else:
@@ -72,11 +71,11 @@ while True:
 		pos0[i] = x1
 	pos0 = pos0 * autoan
 
-	inputfile = quansoft.reinpotfile(inputfile, pos0, symb, intcycle, numele, filename)
-	runfile = quansoft.runsoft(inputfile)
+	quansoft.reinpotfile(filename, pos0, symb, intcycle, numele, filename)
+	runfile = quansoft.runsoft(filename, intcycle)
 
 	far1 = copy.deepcopy(far0)
-	far0 = quansoft.getforce(runfile, numele, out0, totalv, symb, start)
+	far0 = quansoft.getforce(filename, numele, out0, totalv, symb, start, intcycle)
 	for i in range(numele):
 		p1 = mom0[i] + dt * (far0[i] + far1[i]) / 2
 		mom0[i] = p1
@@ -89,7 +88,7 @@ while True:
 
 	writefile.writecon(out0, symb, pos0, 'coordinate', numele)
 	writefile.writecon(out0, symb, far0, 'Forces', numele)
-	totalv = quansoft.getenergy(runfile, out0, totalv, start)
+	totalv = quansoft.getenergy(filename, out0, totalv, start, intcycle)
 	writefile.writecon(out0, symb, mom0, 'momentum', numele)
 	writefile.kine(mom0, symb, out0)
 

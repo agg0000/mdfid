@@ -10,11 +10,13 @@ import numpy as np
 
 import writefile
 
+autoan = 0.529177211
 def softname(softuse):
 	'''
 	convince the quantum chemistry from the keyword
 	'''
-	softall = {"gaussian":gaussian(), "molpro":molpro()}
+	softall = {"gaussian": gaussian(),  "molpro": molpro(),
+                   "turbomole":turbomole()}
 
 	if softuse not in softall:
 		exit("please use useful key words")
@@ -34,13 +36,9 @@ class gaussian():
 
 #-------------------------------------------------------------------------------------
 
-	def getfile(self, getname):
-		return "%s.gjf" %getname
-
-#-------------------------------------------------------------------------------------
 	'''
+
 	def getfreq(self, filename, starttime, outname):
-	
 		origincon = open('%s.gjf' %filename).readlines()
 		lencon = len(origincon)
 
@@ -95,23 +93,28 @@ class gaussian():
 	'''
 #-------------------------------------------------------------------------------------
 
-	def reinpotfile(self, oldname, newpos, symb, intcycle, numele, getname):
+	def reinpotfile(self, filename, newpos, symb, intcycle, numele, getname):
 		'''
 		use the new position to create a new gjf file
 		'''
-		strcycle = str(intcycle) # mark the number of gjf file
-		newfname = getname + strcycle
-		newname = "%s.gjf" %newfname
-		oldfile = open(oldname).readlines()
-		newfile = open(newname, 'w')
+		oldcycle = intcycle - 1
+
+		if oldcycle:
+			oldname = filename + str(oldcycle)
+
+		else:
+			oldname = filename
+
+		oldfile = open("%s.gjf" %oldname).readlines()
+		newfile = open("%s%d.gjf" %(filename, intcycle), 'w')
 
 		linenu = 4 # ensure the positine line number.
 		for i, line in enumerate(oldfile):
 			if line[0] in ['%', '#']:
 				linenu += 1
 		
-			if getname in line:
-				oldfile[i] = re.sub(r"%s\d*" %getname, "%s" %newfname, line)
+			if filename in line:
+				oldfile[i] = re.sub(r"%s\d*" %filename, "%s%d" %(filename, intcycle), line)
 
 		for i in range(linenu): 
 			newfile.write(oldfile[i])
@@ -131,15 +134,15 @@ class gaussian():
 			newfile.write(oldfile[i])
 
 		newfile.close()
-		return newname
+		return
 
 #-------------------------------------------------------------------------------------
 
-	def getpos(self, oldname, numele):
+	def getpos(self, filename, numele):
 		'''
 		from the first gjf file to get the first position
 		'''
-		oldfile = open(oldname).readlines()
+		oldfile = open('%s.gjf' %filename).readlines()
 		filelen = len(oldfile)
 
 		linenu = 4 # ensure the positine line number.
@@ -163,23 +166,33 @@ class gaussian():
 	
 #-------------------------------------------------------------------------------------
 
-	def runsoft(self, inputfile):
+	def runsoft(self, filename, intcycle):
 		'''
 		for run the gaussian progam, and return the log file
 		'''
-		inputname = inputfile.split('.')[0]
-		os.system('g09 %s' %inputfile)
-	
-		return '%s.log' %inputname
+		if intcycle:
+			runfile = filename + str(intcycle)
+
+		else:
+			runfile = filename
+
+		os.system('g09 %s.gjf' %runfile)
+		return
 
 #------------------------------------------------------------------------------------
 
-	def getforce(self, resultname, numele, outname, potential, symb, starttime):
+	def getforce(self, filename, numele, outname, potential, symb, starttime, intcycle):
 		'''
 		get the force and position from the soft output file
 		only use to calculate the Hartree-Fork theory
 		'''
-		resultfile = open(resultname).readlines()
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		resultfile = open("%s.log" %resultname).readlines()
 
 		signf = 0
 		for i, line in enumerate(resultfile):
@@ -203,11 +216,17 @@ class gaussian():
 
 #------------------------------------------------------------------------------------
 
-	def getenergy(self, resultname, outname, potential, starttime):
+	def getenergy(self, filename, outname, potential, starttime, intcycle):
 		'''
 		get the energy
 		'''
-		resultfile = open(resultname).readlines()
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		resultfile = open("%s.log" %resultname).readlines()
 
 		signe = []
 		for i, line in enumerate(resultfile):
@@ -291,22 +310,21 @@ class molpro():
 
 #-------------------------------------------------------------------------------------
 
-	def getfile(self, getname):
-		return "%s.in" %getname
-
-#-------------------------------------------------------------------------------------
-
-	def reinpotfile(self, oldname, newpos, symb, intcycle, numele, getname):
+	def reinpotfile(self, filename, newpos, symb, intcycle, numele, getname):
 		'''
 		use the new position to create a new in file
 		'''
-		strcycle = str(intcycle)
-		newfname = getname + strcycle
-		newname = "%s.in" %newfname
-		oldfile = open(oldname).readlines()
-		newfile = open(newname, 'w')
+		oldcycle = intcycle - 1
 
-		geoline = len(oldfile) + 1
+		if oldcycle:
+			oldname = filename + str(oldcycle)
+
+		else:
+			oldname = filename
+
+		oldfile = open("%s.in" %oldname).readlines()
+		newfile = open("%s%d.in" %(filename, intcycle), 'w')
+
 		for i, line in enumerate(oldfile):
 			if 'geometry' in line:
 				geoline = i + 3
@@ -331,15 +349,15 @@ class molpro():
 			newfile.write(oldfile[i])
 
 		newfile.close()
-		return newname
+		return
 
 #-------------------------------------------------------------------------------------
 
-	def getpos(self, oldname, numele):
+	def getpos(self, filename, numele):
 		'''
 		from the first gjf file to get the first position
 		'''
-		oldfile = open(oldname).readlines()
+		oldfile = open('%s.in' %filename).readlines()
 		geoline = len(oldfile) + 1
 		for i, line in enumerate(oldfile):
 			if 'geometry' in line:
@@ -361,23 +379,33 @@ class molpro():
 
 #-------------------------------------------------------------------------------------
 
-	def runsoft(self, inputfile):
+	def runsoft(self, filename, intcycle):
 		'''
 		for run the gaussian progam, and return the log file
 		'''
-		inputname = inputfile.split('.')[0]
-		os.system('molpro %s' %inputfile)
+		if intcycle:
+			runfile = filename + str(intcycle)
+
+		else:
+			runfile = filename
 	
-		return '%s.out' %inputname
+		os.system('molpro %s.in' %runfile)
+		return
 
 #------------------------------------------------------------------------------------
 
-	def getforce(self, resultname, numele, outname, potential, symb, starttime):
+	def getforce(self, filename, numele, outname, potential, symb, starttime, intcycle):
 		'''
 		get the force and position from the soft output file
 		only use to calculate the Hartree-Fork theory
 		'''
-		resultfile = open(resultname).readlines()
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		resultfile = open("%s.out" %resultname).readlines()
 
 		signf = 0
 		for i, line in enumerate(resultfile):
@@ -402,23 +430,179 @@ class molpro():
 
 #------------------------------------------------------------------------------------
 
-	def getenergy(self, resultname, outname, potential, starttime):
+	def getenergy(self, filename, outname, potential, starttime, intcycle):
 		'''
 		get the energy
 		'''
-		resultfile = open(resultname).readlines()
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		resultfile = open("%s.out" %resultname).readlines()
 
 		try:
 			ev = resultfile[-3].split()[0]
-			potential.append(ev)
-			ev = float(ev)		
+			outenergy = float(ev)		
+			potential.append(outenergy)
 			
 			outfile = open(outname, 'a+')
-			outfile.write('SCF Done energy is %f a.u.' %ev)
+			outfile.write('the total potential is %f a.u. \n' %outenergy)
 			outfile.close()
 
 		except:
 			writefile.werror(outname, 'energy', starttime)
 			exit('no energy in outfile')
 
+		return potential
+
+#####################################################################################
+#                             class turbomole                                       #
+#####################################################################################
+
+class turbomole():
+	'''
+	use the molpro soft
+	'''
+	def __init__(self):
+		self = self
+
+#-------------------------------------------------------------------------------------
+
+	def reinpotfile(self, filename, newpos, symb, intcycle, numele, getname):
+		oldcycle = intcycle - 1
+
+		if oldcycle:
+			oldname = filename + str(oldcycle)
+
+		else:
+			oldname = filename
+
+		os.system("mkdir -p %s%d" %(filename, intcycle))
+		oldfile = open("%s//coord" %oldname).readlines()
+		newfile = open("%s%d//coord" %(filename, intcycle), 'w')
+
+		newpos = newpos / autoan
+		newfile.write(oldfile[0])
+		for i in range(1, numele + 1):
+			for ii in range(3):
+				newfile.write('    ')
+				newfile.write(str(newpos[i - 1][ii]))
+
+			newfile.write('  ')
+			newfile.write(symb[i - 1])
+
+			newfile.write('\n')
+
+		for i in range(1 + numele, len(oldfile)):
+			newfile.write(oldfile[i])
+
+		newfile.close()
+		return 
+
+#-------------------------------------------------------------------------------------
+
+	def getpos(self, filename, numele):
+		oldfile = open("%s//coord" %filename).readlines()
+		
+		pos = []
+		sym = []
+		for i in range(1, numele + 1):
+			posarray = oldfile[i].split()
+			
+			pos.append(posarray[:3])
+			sym.append(posarray[-1].upper())
+
+		pos = np.array(pos, dtype = float)
+		pos = pos * autoan
+
+		return pos, sym
+
+#-------------------------------------------------------------------------------------
+
+	def runsoft(self, filename, intcycle):
+		oldcycle = intcycle - 1
+		intname = filename + str(intcycle)
+		oldname = filename + str(oldcycle)
+
+		if not intcycle:
+			os.chdir(filename)
+			os.system("dscf")
+			os.system("grad")
+			os.chdir("..")
+
+		elif not oldcycle:
+			os.system("cp %s//control %s" %(filename, intname))
+			os.system("cp %s//basis %s" %(filename, intname))
+			os.system("cp %s//mos %s" %(filename, intname))
+			os.chdir(intname)
+			os.system("dscf")
+			os.system("grad")
+			os.chdir("..")
+
+		else:
+			os.system("cp %s//control %s" %(oldname, intname))
+			os.system("cp %s//basis %s" %(oldname, intname))
+			os.system("cp %s//mos %s" %(oldname, intname))
+			os.chdir(intname)
+			os.system("dscf")
+			os.system("grad")
+			os.chdir("..")
+		
 		return
+
+#-------------------------------------------------------------------------------------
+
+	def getforce(self, filename, numele, outname, potential, symb, starttime, intcycle):
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		if not os.path.isfile("%s//gradient" %resultname):
+			writefile.werror(outname, 'forces', starttime)
+			exit('no force in outfile')
+			
+		resultfile = open("%s//gradient" %resultname).readlines()
+
+		numf = resultfile[numele + 2: numele + 2 + numele]
+		
+		sfar = []
+		for i in range(numele):
+			nuf = numf[i].replace("D", "e")
+			eachforce = nuf.split()
+			sfar.append(eachforce)
+
+		far = np.array(sfar, dtype = float)
+		far = far * -1
+
+		return far
+
+#------------------------------------------------------------------------------------
+
+	def getenergy(self, filename, outname, potential, starttime, intcycle):
+		if intcycle:
+			resultname = filename + str(intcycle)
+
+		else:
+			resultname = filename
+
+		if not os.path.isfile("%s//energy" %resultname):
+			writefile.werror(outname, 'energy', starttime)
+			exit('no energy in outfile')
+
+		resultfile = open("%s//energy" %resultname).readlines()
+
+		ev = resultfile[1].split()[1]
+		outenergy = float(ev)		
+		potential.append(outenergy)
+
+		outfile = open(outname, 'a+')
+		outfile.write('the total potential is %f a.u. \n' %outenergy)
+		outfile.close()
+
+		return potential
+
+

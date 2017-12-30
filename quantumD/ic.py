@@ -8,10 +8,11 @@ import numpy as np
 import softapi
 import writefile
 
-def initp(numele, totalmom, softuse, inputfile, out0, dt, start):
+def initp(numele, totalmom, softuse, filename, out0, dt, start):
 	'''
 	init function
 	'''
+	intcycle = 0
 	totalv = []
 	quansoft = softapi.softname(softuse)
 
@@ -37,7 +38,7 @@ def initp(numele, totalmom, softuse, inputfile, out0, dt, start):
 	outfile.write(' Welcome to zongzi program '.center(99, '*') + '\n')
 	outfile.write('*'*99 + '\n'*2)
 
-	outfile.write('input file name is <%s> \n' %inputfile)
+	outfile.write('input file name is <%s> \n' %filename)
 	outfile.write('step(time) is %d a.u. \n' %dt)
 	outfile.write('number of atoms need to calculate is %d \n\n' %numele)
 
@@ -46,18 +47,19 @@ def initp(numele, totalmom, softuse, inputfile, out0, dt, start):
 	outfile.write('='*84 + '\n'*2)
 	outfile.close()
 
-	pos0, symb = quansoft.getpos(inputfile, numele)
-	runfile = quansoft.runsoft(inputfile)
-	far0 = quansoft.getforce(runfile, numele, out0, totalv, symb, start)
+	pos0, symb = quansoft.getpos(filename, numele)
+
+	quansoft.runsoft(filename, intcycle)
+	far0 = quansoft.getforce(filename, numele, out0, totalv, symb, start, intcycle)
 	mom0 = np.array(originmom, dtype = float)
 
 	writefile.writecon(out0, symb, pos0, 'coordinate', numele)
-	writefile.writecon(out0, symb, mom0, 'Forces', numele)
-	totalv = quansoft.getenergy(runfile, out0, totalv, start)
+	writefile.writecon(out0, symb, far0, 'Forces', numele)
+	totalv = quansoft.getenergy(filename, out0, totalv, start, intcycle)
 	writefile.writecon(out0, symb, mom0, 'momentum', numele)
 	writefile.kine(mom0, symb, out0)
 
-	intcycle = 1
+	intcycle += 1
 
 	return totalv, pos0, symb, far0, mom0, intcycle
 
