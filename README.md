@@ -17,6 +17,8 @@ for remove imag freq
 
     Usage:
         imag_freq.py xxx.log
+        or
+        imag_freq.py -f gau -s 0.01 xxx.log
 
     output:
         xxx00.xyz xxx01.xyz
