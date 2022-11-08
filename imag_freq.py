@@ -49,7 +49,7 @@ class freq_file( ABC ):
             xyz_file.write( "{}\n\n".format( natom ) )
 
             for i in range(natom):
-                xyz_file.write( " {0:<7s} {1[0]:10.5f} {1[1]:10.5f} {1[2]:10.5f}\n".format( elements[i], coords[i] ) )
+                xyz_file.write( " {0:<6s} {1[0]:12.6f} {1[1]:12.6f} {1[2]:12.6f}\n".format( elements[i], coords[i] ) )
 
         return
 
@@ -65,21 +65,24 @@ class gau_freq_file( freq_file ):
                 break
         
         if not self.natom:
-            print( "error in read number of atoms" )
+            print( "Error in read number of atoms" )
             exit(1)
         
-        first = True
-        freq_read   = False
         init_coords = []
         freq_coords = []
+        freq_read   = False
         for i, line in enumerate( file_line ):
-            if first and "Charge " in line and "Multiplicity " in line:
-                first = False
+            if "Redundant internal coordinates" in line:
+                coord    = []
+                elements = []
                 for j in range( self.natom ):
-                    ele = file_line[i + j + 1].split()
+                    ele = file_line[i + j + 2].split( "," )
                     init_coords.append( ele[1: 4] )
 
                     self.elements.append( ele[0] )
+
+                init_coords   = coord
+                self.elements = elements
         
             if "Frequencies" in line:
                 freq_read = True
@@ -97,7 +100,7 @@ class gau_freq_file( freq_file ):
                     freq_coords.append( coord )
         
         if not freq_read:
-            print( "error in read frequencies" )
+            print( "Error in read frequencies" )
             exit(2)
         
         self.freq_coords = np.array( freq_coords, dtype = float )
@@ -115,22 +118,24 @@ class bdf_freq_file( freq_file ):
                 break
         
         if not self.natom:
-            print( "error in read number of atoms" )
+            print( "Error in read number of atoms" )
             exit(1)
         
-        first = True
-        freq_read   = False
         init_coords = []
         freq_coords = []
+        freq_read   = False
         for i, line in enumerate( file_line ):
-            if first and "GEOMETRY" == line.strip():
-                first = False
-                k = 2 if "Read" in file_line[i + 1] else 1
+            if "Cartesian coordinates (Angstrom)" in line:
+                coord    = []
+                elements = []
                 for j in range( self.natom ):
-                    ele = file_line[i + j + k].split()
-                    init_coords.append( ele[1: 4] )
+                    ele = file_line[i + j + 4].split()
+                    init_coords.append( ele[3: 6] )
 
-                    self.elements.append( ele[0] )
+                    self.elements.append( ele[1] )
+
+                init_coords   = coord
+                self.elements = elements
         
             if "Frequencies" in line:
                 freq_read = True
@@ -148,7 +153,85 @@ class bdf_freq_file( freq_file ):
                     freq_coords.append( coord )
         
         if not freq_read:
-            print( "error in read frequencies" )
+            print( "Error in read frequencies" )
+            exit(2)
+        
+        self.freq_coords = np.array( freq_coords, dtype = float )
+        self.init_coords = np.array( init_coords, dtype = float )
+
+class orca_freq_file( freq_file ):
+
+    def get_freq_norm( self ):
+        with open( self.file_name ) as input_file:
+            file_line = input_file.readlines()
+        
+        degrees_of_freedom = 0
+        for line in file_line:
+            if "The number of degrees" in line:
+                degrees_of_freedom = int( line.split()[-1] )
+
+            if "Number of atoms" in line:
+                self.natom = int( line.split()[-1] )
+                break
+        
+        remove_tran_rota = 3 * self.natom - degrees_of_freedom
+        if not self.natom:
+            print( "Error in read number of atoms" )
+            exit(1)
+        
+        init_coords = []
+        freq_coords = []
+        freq_read   = False
+        for i, line in enumerate( file_line ):
+            if "CARTESIAN COORDINATES (ANGSTROEM)" in line:
+                coord    = []
+                elements = []
+                for j in range( self.natom ):
+                    ele = file_line[i + j + 2].split()
+                    coord.append( ele[1: 4] )
+
+                    elements.append( ele[0] )
+
+                init_coords   = coord
+                self.elements = elements
+        
+            if "VIBRATIONAL FREQUENCIES" in line:
+                freq_read = True
+
+                ii = i + 5 + remove_tran_rota
+                for j in range(degrees_of_freedom):
+                    freq_line = file_line[ii + j].split()[1]
+                    freq = float( freq_line )
+                    self.freqs.append( freq )
+        
+            if "NORMAL MODES" in line:
+                if remove_tran_rota == 5:
+                    coord = []
+                    for j in range( 3 * self.natom ):
+                        norm_coord = file_line[i + 8 + j].split()[-1]
+                        coord.append( norm_coord )
+
+                    coord_array = np.array( coord, dtype = float ).reshape(self.natom, 3)
+                    freq_coords.append( coord_array )
+
+                j = i + 8 + 3 * self.natom
+                while file_line[j].strip():
+                    line_n_freq = len( file_line[j].split() )
+
+                    for k in range( line_n_freq ):
+                        coord = []
+                        for l in range( 3 * self.natom ):
+                            norm = file_line[j + 1 + l].split()
+                            norm_coord = norm[k]
+                            coord.append( norm_coord )
+
+                        coord_array = np.array( coord, dtype = float ).reshape(self.natom, 3)
+                        freq_coords.append( coord_array )
+
+                    j += 3 * self.natom + 1
+        
+        if not freq_read:
+            print( "Error in read frequencies" )
             exit(2)
         
         self.freq_coords = np.array( freq_coords, dtype = float )
@@ -166,7 +249,9 @@ if __name__ == "__main__":
     soft  = options.f
     scale = options.s
 
-    key_class = { "gau": gau_freq_file(), "bdf": bdf_freq_file() }
+    key_class = { "gau":  gau_freq_file(), 
+                  "bdf":  bdf_freq_file(), 
+                  "orca": orca_freq_file() }
     freq_get = key_class.get( soft )
 
     freq_get.build( args[0], scale, mix )
