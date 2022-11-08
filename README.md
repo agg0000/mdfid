@@ -12,7 +12,7 @@ for remove imag freq
             default: 0.1
 
     Result:
-        2 $\times$ n xyz struct, initial coordinate plus scale norm mode 
+        2 * n xyz struct, initial coordinate plus scale norm mode 
         and minius scale norm mode. Where n is number of imag mode
 
     Usage:
