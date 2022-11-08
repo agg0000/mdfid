@@ -5,8 +5,9 @@ for remove imag freq
 
     option:
         -f: ab initio software
-            gau: gaussian (default)
-            bdf: BDF
+            gau:  gaussian (default)
+            bdf:  BDF
+            orca: orca
 
         -s: scale add norm mode to coordinate (float)
             default: 0.1
