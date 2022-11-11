@@ -41,8 +41,8 @@ class freq_file( ABC ):
 
     @staticmethod
     def out_xyz( natom, elements, coords, out_name ):
-        if len( coords ) != natom:
-            print( "Error: coords len is not eq to natom!" )
+        if len( coords ) != natom or len( elements ) != natom:
+            print( "Error: coords or elements len is not eq to natom!" )
             exit(21)
 
         with open("{}.xyz".format( out_name ), "w+") as xyz_file:
@@ -130,9 +130,9 @@ class bdf_freq_file( freq_file ):
                 elements = []
                 for j in range( self.natom ):
                     ele = file_line[i + j + 4].split()
-                    init_coords.append( ele[3: 6] )
+                    coord.append( ele[3: 6] )
 
-                    self.elements.append( ele[1] )
+                    elements.append( ele[1] )
 
                 init_coords   = coord
                 self.elements = elements
