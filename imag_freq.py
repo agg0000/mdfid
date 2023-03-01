@@ -9,9 +9,7 @@ class freq_file( ABC ):
     def __init__( self ):
         self = self
 
-    def build( self, file_name, scale, mix ):
-        self.mix         = mix
-        self.scale       = scale
+    def build( self, file_name ):
         self.file_name   = file_name
         self.natom       = 0
         self.freqs       = []
@@ -23,7 +21,7 @@ class freq_file( ABC ):
     def get_freq_norm( self ):
         pass
 
-    def remove_imag( self ):
+    def remove_imag( self, scale, mix ):
         min_freq = min( self.freqs )
         if min_freq > 0:
             print( "Warning: There is no imag freq!" )
@@ -32,15 +30,19 @@ class freq_file( ABC ):
         for i, freq in enumerate( self.freqs ):
             if freq < 0:
                 for n, pm in enumerate([-1, 1]):
-                    new_coord = self.init_coords + pm * self.scale * self.freq_coords[i]
+                    new_coord = self.init_coords + pm * scale * self.freq_coords[i]
                     out_file = "{}{}{}".format( self.file_name.split( "." )[0], i, n )
 
-                    self.out_xyz( self.natom, self.elements, new_coord, out_file )
+                    self.out_imag_xyz( self.natom, self.elements, new_coord, out_file )
 
         return
 
+    def show_vib( self ):
+        vib_name = self.file_name.split( "." )[0]
+        self.out_vib_xyz( self.natom, self.elements, self.init_coords, self.freqs, self.freq_coords, vib_name )
+
     @staticmethod
-    def out_xyz( natom, elements, coords, out_name ):
+    def out_imag_xyz( natom, elements, coords, out_name ):
         if len( coords ) != natom or len( elements ) != natom:
             print( "Error: coords or elements len is not eq to natom!" )
             exit(21)
@@ -53,37 +55,53 @@ class freq_file( ABC ):
 
         return
 
+    @staticmethod
+    def out_vib_xyz( natom, elements, coords, frequences, freq_coords, out_name ):
+        if len( coords ) != natom or len( elements ) != natom:
+            print( "Error: coords or elements len is not eq to natom!" )
+            exit(21)
+
+        with open("{}_vib.xyz".format( out_name ), "w+") as xyz_file:
+            for n, freq in enumerate( frequences ):
+                xyz_file.write( "{}\n".format( natom ) )
+                xyz_file.write( "  Frequencies: {:10.4f} cm^-1\n".format( frequences[n] ) )
+
+                for i in range( natom ):
+                    xyz_file.write( " {0:<6s} {1[0]:12.6f} {1[1]:12.6f} {1[2]:12.6f} {2[0]:9.4f} {2[1]:9.4f} {2[2]:9.4f}\n".format( elements[i], coords[i], freq_coords[n][i] ) )
+
+        return
+
 class gau_freq_file( freq_file ):
 
     def get_freq_norm( self ):
         with open( self.file_name ) as input_file:
             file_line = input_file.readlines()
         
-        for line in file_line:
-            if "NAtom" in line:
+        coord_line = 0
+        for i, line in enumerate( file_line ):
+            if "Standard orientation" in line or "Input orientation" in line:
+                coord_line = i
+        
+            if "NAtoms" in line:
                 self.natom = int( line.split()[1] )
-                break
         
         if not self.natom:
             print( "Error in read number of atoms" )
             exit(1)
         
-        init_coords = []
+        freq_read = False
+        ele_read  = True
         freq_coords = []
-        freq_read   = False
+        elements = []
         for i, line in enumerate( file_line ):
-            if "Redundant internal coordinates" in line:
-                coord    = []
-                elements = []
+            if "Charge" in line and "Multiplicity" in line and ele_read:
+                ele_read  = False
                 for j in range( self.natom ):
-                    ele = file_line[i + j + 2].split( "," )
-                    init_coords.append( ele[1: 4] )
+                    ele = file_line[i + j + 1].split()
+                    elements.append(ele[0])
 
-                    self.elements.append( ele[0] )
-
-                init_coords   = coord
                 self.elements = elements
-        
+
             if "Frequencies" in line:
                 freq_read = True
         
@@ -94,11 +112,23 @@ class gau_freq_file( freq_file ):
                 for j in range( line_n_freq ):
                     coord = []
                     for k in range( self.natom ):
-                        norm_coord = file_line[i + 8 + k].split()[2:]
+                        norm_coord = file_line[i + 5 + k].split()[2:]
                         coord.append( norm_coord[3 * j: 3 * j + 3] )
         
                     freq_coords.append( coord )
         
+        init_coords = []
+        if coord_line:
+            coords = []
+            for j in range( self.natom ):
+                coord = file_line[coord_line + j + 5].split()
+                coords.append( coord[3: 6] )
+
+            init_coords = coords
+        else:
+            print( "Error in read orientation" )
+            exit(3)
+
         if not freq_read:
             print( "Error in read frequencies" )
             exit(2)
@@ -172,7 +202,6 @@ class orca_freq_file( freq_file ):
 
             if "Number of atoms" in line:
                 self.natom = int( line.split()[-1] )
-                break
         
         remove_tran_rota = 3 * self.natom - degrees_of_freedom
         if not self.natom:
@@ -222,7 +251,7 @@ class orca_freq_file( freq_file ):
                         coord = []
                         for l in range( 3 * self.natom ):
                             norm = file_line[j + 1 + l].split()
-                            norm_coord = norm[k]
+                            norm_coord = norm[k + 1]
                             coord.append( norm_coord )
 
                         coord_array = np.array( coord, dtype = float ).reshape(self.natom, 3)
@@ -243,19 +272,26 @@ if __name__ == "__main__":
     parser.add_option( '-f', dest = 'f', type = str,   default = "gau", help = 'what soft output file'   )
     
     parser.add_option( '-m', dest = 'm', action = "store_true", default = False, help = "if mix imag freq" )
+
+    parser.add_option( '-w', dest = 'w', action = "store_true", default = False, help = "show the vibration with xyz file in Jmol" )
     
     (options, args) = parser.parse_args()
     mix   = options.m
     soft  = options.f
     scale = options.s
 
+    vib_show = options.w
+
     key_class = { "gau":  gau_freq_file(), 
                   "bdf":  bdf_freq_file(), 
                   "orca": orca_freq_file() }
     freq_get = key_class.get( soft )
 
-    freq_get.build( args[0], scale, mix )
+    freq_get.build( args[0] )
     freq_get.get_freq_norm()
 
-    freq_get.remove_imag()
+    if not vib_show:
+        freq_get.remove_imag( scale, mix )
+    else:
+        freq_get.show_vib()
 
