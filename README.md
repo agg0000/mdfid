@@ -28,7 +28,7 @@ for remove imag freq
         -w: show frequencies with xyz file, use jmol GUI
 
     Usage:
-        imag_freq.py xxx.log
+        imag_freq.py -w xxx.log
 
     output:
         xxx_vib.xyz
