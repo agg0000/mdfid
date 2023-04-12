@@ -154,6 +154,7 @@ class bdf_freq_file( freq_file ):
         init_coords = []
         freq_coords = []
         freq_read   = False
+        norm_mode   = True
         for i, line in enumerate( file_line ):
             if "Cartesian coordinates (Angstrom)" in line:
                 coord    = []
@@ -167,10 +168,10 @@ class bdf_freq_file( freq_file ):
                 init_coords   = coord
                 self.elements = elements
         
-            if "Frequencies" in line:
+            if "Frequencies" in line and norm_mode:
                 freq_read = True
         
-                freq_line = line.split()[2:]
+                freq_line = line.split()[1:]
                 line_n_freq = len( freq_line )
         
                 self.freqs += [ float( freq ) for freq in freq_line ]
@@ -181,6 +182,9 @@ class bdf_freq_file( freq_file ):
                         coord.append( norm_coord[3 * j: 3 * j + 3] )
         
                     freq_coords.append( coord )
+
+            if "Results of translations and rotations" in line:
+                norm_mode = False
         
         if not freq_read:
             print( "Error in read frequencies" )
