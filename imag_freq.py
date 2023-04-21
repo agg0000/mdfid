@@ -201,7 +201,6 @@ class orca_freq_file( freq_file ):
         
         degrees_of_freedom = 0
         for line in file_line:
-            degrees_of_freedom = 0
             if "The number of degrees" in line:
                 degrees_of_freedom = int( line.split()[-1] )
 
