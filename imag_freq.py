@@ -212,7 +212,15 @@ class orca_freq_file( freq_file ):
             if "Number of atoms" in line:
                 self.natom = int( line.split()[-1] )
         
-        remove_tran_rota = 3 * self.natom - degrees_of_freedom
+        if degrees_of_freedom:
+            remove_tran_rota = 3 * self.natom - degrees_of_freedom
+        else:
+            remove_tran_rota = 6
+            if "The molecule is recognized as being linear" in line:
+                remove_tran_rota = 5
+
+            degrees_of_freedom = 3 * self.natom - remove_tran_rota
+
         if not self.natom:
             print( "Error in read number of atoms" )
             exit(1)
