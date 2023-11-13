@@ -27,6 +27,8 @@ for remove imag freq
     (new) option:
         -w: show frequencies with xyz file, use jmol GUI
 
+        -c: only output opt coord
+
     Usage:
         imag_freq.py -w xxx.log
 
