@@ -37,6 +37,11 @@ class freq_file( ABC ):
 
         return
 
+    def out_xyz( self ):
+        out_name = self.file_name.split( "." )[0] + "_opt"
+
+        self.out_imag_xyz( self.natom, self.elements, self.init_coords, out_name )
+
     def show_vib( self ):
         vib_name = self.file_name.split( "." )[0]
         self.out_vib_xyz( self.natom, self.elements, self.init_coords, self.freqs, self.freq_coords, vib_name )
@@ -276,12 +281,13 @@ if __name__ == "__main__":
     parser.add_option( '-f', dest = 'f', type = str,   default = "gau", help = 'what soft output file'   )
     
     parser.add_option( '-m', dest = 'm', action = "store_true", default = False, help = "if mix imag freq" )
-
+    parser.add_option( '-c', dest = 'c', action = "store_true", default = False, help = "only output coordinate" )
     parser.add_option( '-w', dest = 'w', action = "store_true", default = False, help = "show the vibration with xyz file in Jmol" )
     
     (options, args) = parser.parse_args()
     mix   = options.m
     soft  = options.f
+    coord = options.c
     scale = options.s
 
     vib_show = options.w
@@ -294,8 +300,11 @@ if __name__ == "__main__":
     freq_get.build( args[0] )
     freq_get.get_freq_norm()
 
-    if not vib_show:
-        freq_get.remove_imag( scale, mix )
+    if coord:
+        freq_get.out_xyz()
     else:
-        freq_get.show_vib()
+        if not vib_show:
+            freq_get.remove_imag( scale, mix )
+        else:
+            freq_get.show_vib()
 
