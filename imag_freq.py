@@ -27,13 +27,26 @@ class freq_file( ABC ):
             print( "Warning: There is no imag freq!" )
             return
 
+        if mix:
+            out_array = np.zeros( ( 2, self.natom, 3 ) )
+
         for i, freq in enumerate( self.freqs ):
             if freq < 0:
                 for n, pm in enumerate([-1, 1]):
-                    new_coord = self.init_coords + pm * scale * self.freq_coords[i]
-                    out_file = "{}{}{}".format( self.file_name.split( "." )[0], i, n )
+                    if mix:
+                        out_array[n] += pm * scale * self.freq_coords[i]
+                    else:
+                        new_coord = self.init_coords + pm * scale * self.freq_coords[i]
 
-                    self.out_imag_xyz( self.natom, self.elements, new_coord, out_file )
+                        out_file = "{}{}{}".format( self.file_name.split( "." )[0], i, n )
+                        self.out_imag_xyz( self.natom, self.elements, new_coord, out_file )
+
+        if mix:
+            for j in range( 2 ):
+                out_file = "{}{}".format( self.file_name.split( "." )[0], j )
+                
+                new_coord = self.init_coords + out_array[j]
+                self.out_imag_xyz( self.natom, self.elements, new_coord, out_file )
 
         return
 
