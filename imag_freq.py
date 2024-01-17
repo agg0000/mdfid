@@ -104,8 +104,16 @@ class gau_freq_file( freq_file ):
                 self.natom = int( line.split()[1] )
         
         if not self.natom:
-            print( "Error in read number of atoms" )
-            exit(1)
+            if coord_line:
+                check_natom = 0
+                while "-----" not in file_line[ coord_line + 5 + check_natom ]:
+                    check_natom += 1
+
+            if "-----" in file_line[ coord_line + 5 + check_natom ]:
+                self.natom = check_natom
+            else:
+                print( "Error in read number of atoms" )
+                exit(1)
         
         freq_read = False
         ele_read  = True
