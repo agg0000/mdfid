@@ -156,8 +156,7 @@ class gau_freq_file( freq_file ):
             exit(3)
 
         if not freq_read:
-            print( "Error in read frequencies" )
-            exit(2)
+            print( "WARNNIG: in read frequencies !!!" )
         
         self.freq_coords = np.array( freq_coords, dtype = float )
         self.init_coords = np.array( init_coords, dtype = float )
@@ -213,8 +212,7 @@ class bdf_freq_file( freq_file ):
                 norm_mode = False
         
         if not freq_read:
-            print( "Error in read frequencies" )
-            exit(2)
+            print( "WARNNIG: in read frequencies !!!" )
         
         self.freq_coords = np.array( freq_coords, dtype = float )
         self.init_coords = np.array( init_coords, dtype = float )
@@ -298,8 +296,7 @@ class orca_freq_file( freq_file ):
                     j += 3 * self.natom + 1
         
         if not freq_read:
-            print( "Error in read frequencies" )
-            exit(2)
+            print( "WARNNING in read frequencies !!!" )
         
         self.freq_coords = np.array( freq_coords, dtype = float )
         self.init_coords = np.array( init_coords, dtype = float )
