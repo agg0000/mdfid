@@ -1,6 +1,6 @@
 # Some python script for ab initio output
 
-## imag_freq
+## imag\_freq
 for remove imag freq
 
     option:
