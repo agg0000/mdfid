@@ -264,7 +264,7 @@ class orca_freq_file( freq_file ):
                 freq_read = True
 
                 ii = i + 5 + remove_tran_rota
-                for j in range(degrees_of_freedom):
+                for j in range( degrees_of_freedom ):
                     freq_line = file_line[ii + j].split()[1]
                     freq = float( freq_line )
                     self.freqs.append( freq )
